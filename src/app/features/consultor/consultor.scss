@@ -1,0 +1,139 @@
+.xat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 26rem;
+}
+
+.xat__historial {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem;
+}
+
+.xat__buit {
+  margin: auto;
+  text-align: center;
+  color: var(--p-text-muted-color);
+
+  i {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+}
+
+.xat__suggeriments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.chip {
+  border: 1px solid var(--p-surface-300);
+  background: var(--p-surface-0);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--p-text-color);
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover {
+    border-color: var(--p-primary-color);
+    background: var(--p-primary-50);
+  }
+}
+
+.msg {
+  display: flex;
+
+  &--usuari {
+    justify-content: flex-end;
+  }
+
+  &--assistent {
+    justify-content: flex-start;
+  }
+
+  &__bombolla {
+    max-width: 85%;
+    padding: 0.6rem 0.85rem;
+    border-radius: 12px;
+    background: var(--p-surface-100);
+
+    &--error {
+      background: var(--p-red-50);
+      border: 1px solid var(--p-red-200);
+    }
+  }
+
+  &--usuari &__bombolla {
+    background: var(--p-primary-color);
+    color: var(--p-primary-contrast-color);
+  }
+
+  &__text {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+
+  &__sql {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+
+    summary {
+      cursor: pointer;
+      color: var(--p-text-muted-color);
+    }
+
+    pre {
+      background: var(--p-surface-900);
+      color: var(--p-surface-0);
+      padding: 0.6rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.78rem;
+      margin: 0.4rem 0 0;
+    }
+  }
+
+  &__taula {
+    margin-top: 0.5rem;
+    overflow-x: auto;
+
+    table {
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid var(--p-surface-200);
+      padding: 0.25rem 0.5rem;
+      text-align: left;
+    }
+
+    th {
+      background: var(--p-surface-100);
+    }
+  }
+}
+
+.xat__entrada {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--p-surface-200);
+
+  textarea {
+    flex: 1;
+    resize: none;
+  }
+}

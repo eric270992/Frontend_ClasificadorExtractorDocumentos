@@ -1,0 +1,138 @@
+<section class="documentos">
+  <!-- Zona de subida drag & drop -->
+  <div
+    class="dropzone"
+    [class.dropzone--activa]="arrastrando()"
+    [class.dropzone--ocupada]="subiendo()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+  >
+    <input type="file" id="fileInput" accept="application/pdf" hidden (change)="onSeleccionArchivo($event)" />
+
+    @if (subiendo()) {
+      <i class="pi pi-spin pi-spinner dropzone__icon"></i>
+      <p class="dropzone__titol">Processant la factura…</p>
+      <p-progressbar [style]="{ width: '260px' }" mode="indeterminate" [style.height.px]="6" />
+      <small class="dropzone__ajuda">Ingesta → extracció (LLM) → validació → staging</small>
+    } @else {
+      <i class="pi pi-cloud-upload dropzone__icon"></i>
+      <p class="dropzone__titol">Arrossega un PDF de factura aquí</p>
+      <p class="dropzone__o">o</p>
+      <label for="fileInput">
+        <span class="p-button p-button-outlined dropzone__boto">
+          <i class="pi pi-folder-open"></i>&nbsp; Selecciona un fitxer
+        </span>
+      </label>
+      <small class="dropzone__ajuda">Només PDF · màx. 10 MB</small>
+    }
+  </div>
+
+  @if (mensajeSubida(); as msg) {
+    <p-message [severity]="msg.tipo" [text]="msg.texto" styleClass="documentos__msg" />
+  }
+
+  <!-- Llista de documents -->
+  <div class="documentos__capcalera">
+    <h2>Factures processades</h2>
+    <p-button
+      icon="pi pi-refresh"
+      [rounded]="true"
+      [text]="true"
+      severity="secondary"
+      (onClick)="refrescar()"
+      pTooltip="Refrescar"
+      [loading]="cargandoLista()"
+    />
+  </div>
+
+  <p-table [value]="facturas()" [paginator]="facturas().length > 10" [rows]="10" styleClass="p-datatable-sm" [tableStyle]="{ 'min-width': '60rem' }">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Proveïdor</th>
+        <th>Número</th>
+        <th>Data</th>
+        <th class="col-num">Total</th>
+        <th>Estat</th>
+        <th class="col-num">Incid.</th>
+        <th></th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-f>
+      <tr>
+        <td>
+          <span class="prov">{{ f.proveedor ?? '—' }}</span>
+          @if (f.nifProveedor) { <small class="nif">{{ f.nifProveedor }}</small> }
+        </td>
+        <td>{{ f.numeroFactura }}</td>
+        <td>{{ f.fechaFactura }}</td>
+        <td class="col-num">{{ f.total | number: '1.2-2' }} {{ f.moneda }}</td>
+        <td><p-tag [value]="etiquetaEstado(f.estado)" [severity]="severidadEstado(f.estado)" /></td>
+        <td class="col-num">
+          @if (f.numIncidencias > 0) {
+            <span class="badge-inc">{{ f.numIncidencias }}</span>
+          } @else { — }
+        </td>
+        <td>
+          <p-button icon="pi pi-eye" [rounded]="true" [text]="true" size="small" (onClick)="verDetalle(f)" pTooltip="Veure detall" />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr><td colspan="7" class="buit">Encara no hi ha cap factura. Puja'n una a dalt.</td></tr>
+    </ng-template>
+  </p-table>
+</section>
+
+<!-- Diàleg de detall -->
+<p-dialog
+  [(visible)]="detalleVisible"
+  [modal]="true"
+  [style]="{ width: '52rem', maxWidth: '95vw' }"
+  header="Detall de la factura"
+  (onHide)="detalle.set(null)"
+>
+  @if (detalle(); as d) {
+    <div class="detall">
+      <div class="detall__grid">
+        <div><span class="lbl">Proveïdor</span>{{ d.proveedor?.nombre ?? '—' }}</div>
+        <div><span class="lbl">NIF</span>{{ d.proveedor?.nif ?? '—' }}</div>
+        <div><span class="lbl">Número</span>{{ d.numeroFactura }}</div>
+        <div><span class="lbl">Data</span>{{ d.fechaFactura }}</div>
+        <div><span class="lbl">Estat</span><p-tag [value]="etiquetaEstado(d.estado)" [severity]="severidadEstado(d.estado)" /></div>
+        <div><span class="lbl">Moneda</span>{{ d.moneda }}</div>
+        <div><span class="lbl">Base</span>{{ d.baseImponible | number: '1.2-2' }}</div>
+        <div><span class="lbl">IVA</span>{{ d.cuotaIva | number: '1.2-2' }}</div>
+        @if (d.retencionIrpf) { <div><span class="lbl">IRPF</span>{{ d.retencionIrpf | number: '1.2-2' }}</div> }
+        <div><span class="lbl">Total</span><strong>{{ d.total | number: '1.2-2' }}</strong></div>
+        @if (d.reverseCharge) { <div><span class="lbl">Reverse charge</span>Sí</div> }
+      </div>
+
+      <h4>Línies</h4>
+      <p-table [value]="d.lineas" styleClass="p-datatable-sm">
+        <ng-template pTemplate="header">
+          <tr><th>#</th><th>Descripció</th><th class="col-num">Qt.</th><th class="col-num">Preu</th><th class="col-num">%IVA</th><th class="col-num">Import</th></tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-l>
+          <tr>
+            <td>{{ l.numLinea }}</td>
+            <td>{{ l.descripcion }}</td>
+            <td class="col-num">{{ l.cantidad | number: '1.0-4' }}</td>
+            <td class="col-num">{{ l.precioUnitario | number: '1.2-4' }}</td>
+            <td class="col-num">{{ l.porcentajeIva }}%</td>
+            <td class="col-num">{{ l.importeLinea | number: '1.2-2' }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
+
+      @if (d.incidencias.length) {
+        <h4>Incidències</h4>
+        <ul class="incidencies">
+          @for (i of d.incidencias; track i.codigo + i.fechaCreacion) {
+            <li><strong>{{ i.codigo }}</strong> — {{ i.detalle }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+</p-dialog>

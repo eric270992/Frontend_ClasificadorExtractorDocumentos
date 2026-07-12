@@ -1,0 +1,67 @@
+<section class="xat">
+  <div class="xat__historial">
+    @if (missatges().length === 0) {
+      <div class="xat__buit">
+        <i class="pi pi-comments"></i>
+        <p>Pregunta el que vulguis sobre les factures, en llenguatge natural.</p>
+        <div class="xat__suggeriments">
+          @for (s of suggeriments; track s) {
+            <button class="chip" (click)="usarSuggeriment(s)">{{ s }}</button>
+          }
+        </div>
+      </div>
+    }
+
+    @for (m of missatges(); track $index) {
+      <div class="msg" [class.msg--usuari]="m.autor === 'usuari'" [class.msg--assistent]="m.autor === 'assistent'">
+        <div class="msg__bombolla" [class.msg__bombolla--error]="m.error">
+          <p class="msg__text">{{ m.text }}</p>
+
+          @if (m.sql) {
+            <details class="msg__sql">
+              <summary>SQL executat</summary>
+              <pre>{{ m.sql }}</pre>
+            </details>
+          }
+
+          @if (m.filas && m.filas.length && m.columnas) {
+            <div class="msg__taula">
+              <table>
+                <thead>
+                  <tr>@for (c of m.columnas; track c) { <th>{{ c }}</th> }</tr>
+                </thead>
+                <tbody>
+                  @for (fila of m.filas.slice(0, 10); track $index) {
+                    <tr>@for (c of m.columnas; track c) { <td>{{ fila[c] }}</td> }</tr>
+                  }
+                </tbody>
+              </table>
+              @if (m.filas.length > 10) { <small>… i {{ m.filas.length - 10 }} files més</small> }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (esperant()) {
+      <div class="msg msg--assistent">
+        <div class="msg__bombolla">
+          <i class="pi pi-spin pi-spinner"></i>&nbsp; Consultant…
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="xat__entrada">
+    <textarea
+      pTextarea
+      [ngModel]="pregunta()"
+      (ngModelChange)="pregunta.set($event)"
+      (keydown.enter)="onEnter($event)"
+      placeholder="Escriu la teva pregunta… (Enter per enviar, Shift+Enter per salt de línia)"
+      rows="2"
+      [autoResize]="true"
+    ></textarea>
+    <p-button icon="pi pi-send" (onClick)="enviar()" [disabled]="esperant() || !pregunta().trim()" />
+  </div>
+</section>
