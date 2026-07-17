@@ -1,62 +1,62 @@
 # 🖥️ DocFlow AI — Frontend
 
-Interfície web (Angular 21 + PrimeNG) de **DocFlow AI**, el sistema d'ingesta intel·ligent de factures.
-Permet **pujar factures** (PDF/JPEG/PNG) i veure-les processades, i **fer consultes en llenguatge natural**
-sobre les dades. Es comunica amb l'API del backend.
+Interfaz web (Angular 21 + PrimeNG) de **DocFlow AI**, el sistema de ingesta inteligente de facturas.
+Permite **subir facturas** (PDF/JPEG/PNG) y verlas procesadas, y **hacer consultas en lenguaje natural**
+sobre los datos. Se comunica con la API del backend.
 
 - **Backend**: https://github.com/eric270992/Backend_ClasificadorExtractorDocumentos
 
 ---
 
-## 🚀 Fer servir l'aplicació (recomanat: Docker, tot junt)
+## 🚀 Usar la aplicación (recomendado: Docker, todo junto)
 
-La manera més senzilla de veure l'aplicació funcionant és aixecar **tot el sistema** (base de dades +
-API + aquest frontend) amb Docker, des del repositori del **backend**:
+La manera más sencilla de ver la aplicación funcionando es levantar **todo el sistema** (base de datos +
+API + este frontend) con Docker, desde el repositorio del **backend**:
 
-1. Instal·la **[Docker](https://www.docker.com/products/docker-desktop/)**.
-2. Descarrega **`docker-compose.deploy.yml`** del repositori del backend.
-3. Crea un `.env` al costat amb la teva clau de Groq (gratuïta a
+1. Instala **[Docker](https://www.docker.com/products/docker-desktop/)**.
+2. Descarga **`docker-compose.deploy.yml`** del repositorio del backend.
+3. Crea un `.env` al lado con tu clave de Groq (gratuita en
    [console.groq.com](https://console.groq.com)):
    ```env
-   GROQ_API_KEY=gsk_la_teva_clau
-   MSSQL_SA_PASSWORD=UnaClauForta123!
+   GROQ_API_KEY=gsk_tu_clave
+   MSSQL_SA_PASSWORD=UnaClaveFuerte123!
    ```
-4. Aixeca-ho:
+4. Levántalo:
    ```bash
    docker compose -f docker-compose.deploy.yml up -d
    ```
-5. Obre **http://localhost:8080** → aquí veus **aquest frontend** ja connectat a l'API.
+5. Abre **http://localhost:8080** → aquí ves **este frontend** ya conectado a la API.
 
-Docker es baixa les imatges ja publicades (no cal compilar res). Aquesta app es publica com a imatge
-`ghcr.io/eric270992/docflow-ai-web` automàticament amb GitHub Actions a cada canvi.
+Docker se descarga las imágenes ya publicadas (no hay que compilar nada). Esta app se publica como imagen
+`ghcr.io/eric270992/docflow-ai-web` automáticamente con GitHub Actions en cada cambio.
 
-## 🧑‍💻 Desenvolupar el frontend sol
+## 🧑‍💻 Desarrollar el frontend solo
 
-Si vols treballar només en el frontend (necessites el backend en marxa a `http://localhost:5255`):
+Si quieres trabajar solo en el frontend (necesitas el backend en marcha en `http://localhost:5255`):
 
 ```bash
 npm install
 npm start          # ng serve
 ```
 
-Obre **http://localhost:4200**. El servidor de desenvolupament usa un **proxy** (`proxy.conf.json`)
-que redirigeix les crides `/api` cap al backend, evitant problemes de CORS. Si el backend és en una
-altra adreça, ajusta aquest fitxer.
+Abre **http://localhost:4200**. El servidor de desarrollo usa un **proxy** (`proxy.conf.json`)
+que redirige las llamadas `/api` hacia el backend, evitando problemas de CORS. Si el backend está en otra
+dirección, ajusta este fichero.
 
-> Sense el backend en marxa, l'app carrega però la llista i les consultes no tindran dades.
+> Sin el backend en marcha, la app carga pero la lista y las consultas no tendrán datos.
 
-## 🐳 Docker (aquest repositori)
+## 🐳 Docker (este repositorio)
 
-Aquest repo inclou el seu propi `Dockerfile` (build de producció servit per **nginx**, que a més fa de
-proxy `/api` cap al backend) i un workflow de GitHub Actions que publica la imatge a GHCR. La imatge la
-consumeix el `docker-compose.deploy.yml` del backend.
+Este repo incluye su propio `Dockerfile` (build de producción servido por **nginx**, que además hace de
+proxy `/api` hacia el backend) y un workflow de GitHub Actions que publica la imagen en GHCR. La imagen la
+consume el `docker-compose.deploy.yml` del backend.
 
 ## 🧰 Stack
 
-Angular 21 (standalone) · PrimeNG 21 · TypeScript · nginx (en producció/Docker).
+Angular 21 (standalone) · PrimeNG 21 · TypeScript · nginx (en producción/Docker).
 
-## ✨ Què hi ha a la interfície
+## ✨ Qué hay en la interfaz
 
-- **Pujada** de factures per arrossegar i deixar anar (PDF/JPEG/PNG).
-- **Llista** de factures amb el seu estat (Validada / Revisió humana / Rebutjada) i incidències.
-- **Xat** de consultes en llenguatge natural sobre les factures.
+- **Subida** de facturas por arrastrar y soltar (PDF/JPEG/PNG).
+- **Lista** de facturas con su estado (Validada / Revisión humana / Rechazada) e incidencias.
+- **Chat** de consultas en lenguaje natural sobre las facturas.
