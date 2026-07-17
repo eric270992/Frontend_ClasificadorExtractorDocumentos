@@ -5,6 +5,9 @@ name: Publicar imagen Docker (frontend) en GHCR
 on:
   push:
     branches: [master]
+    paths-ignore:         # los cambios solo de documentación no reconstruyen la imagen
+      - '**.md'
+      - 'docs/**'
   workflow_dispatch: {}   # permite lanzarlo a mano desde la pestaña Actions
 
 permissions:
