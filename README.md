@@ -15,11 +15,22 @@ API + este frontend) con Docker, desde el repositorio del **backend**:
 
 1. Instala **[Docker](https://www.docker.com/products/docker-desktop/)**.
 2. Descarga **`docker-compose.deploy.yml`** del repositorio del backend.
-3. Crea un `.env` al lado con tu clave de Groq (gratuita en
-   [console.groq.com](https://console.groq.com)):
+3. Crea un `.env` al lado. Un **único bloque** con todos los campos; según el proveedor LLM que elijas,
+   rellenas unos u otros:
    ```env
-   GROQ_API_KEY=gsk_tu_clave
+   # Contraseña de SQL Server (obligatoria).
    MSSQL_SA_PASSWORD=UnaClaveFuerte123!
+
+   # Proveedor del LLM: "Groq" (nube, por defecto) o "Local" (LM Studio / Ollama).
+   LLM_PROVIDER=Groq
+
+   # Solo si LLM_PROVIDER=Groq: tu clave (gratis en https://console.groq.com).
+   # Si usas el LLM local, deja esta línea vacía o bórrala.
+   GROQ_API_KEY=gsk_tu_clave
+
+   # Solo si LLM_PROVIDER=Local: dónde escucha tu servidor LLM y qué modelo cargar.
+   LLM_LOCAL_BASEURL=http://host.docker.internal:1234/v1
+   LLM_LOCAL_MODEL=qwen/qwen2.5-vl-7b
    ```
 4. Levántalo:
    ```bash
