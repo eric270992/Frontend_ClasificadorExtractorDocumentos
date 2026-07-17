@@ -1,59 +1,62 @@
-# ClassificadorExtractorDocumentos
+# 🖥️ DocFlow AI — Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.12.
+Interfície web (Angular 21 + PrimeNG) de **DocFlow AI**, el sistema d'ingesta intel·ligent de factures.
+Permet **pujar factures** (PDF/JPEG/PNG) i veure-les processades, i **fer consultes en llenguatge natural**
+sobre les dades. Es comunica amb l'API del backend.
 
-## Development server
+- **Backend**: https://github.com/eric270992/Backend_ClasificadorExtractorDocumentos
 
-To start a local development server, run:
+---
 
-```bash
-ng serve
-```
+## 🚀 Fer servir l'aplicació (recomanat: Docker, tot junt)
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+La manera més senzilla de veure l'aplicació funcionant és aixecar **tot el sistema** (base de dades +
+API + aquest frontend) amb Docker, des del repositori del **backend**:
 
-## Code scaffolding
+1. Instal·la **[Docker](https://www.docker.com/products/docker-desktop/)**.
+2. Descarrega **`docker-compose.deploy.yml`** del repositori del backend.
+3. Crea un `.env` al costat amb la teva clau de Groq (gratuïta a
+   [console.groq.com](https://console.groq.com)):
+   ```env
+   GROQ_API_KEY=gsk_la_teva_clau
+   MSSQL_SA_PASSWORD=UnaClauForta123!
+   ```
+4. Aixeca-ho:
+   ```bash
+   docker compose -f docker-compose.deploy.yml up -d
+   ```
+5. Obre **http://localhost:8080** → aquí veus **aquest frontend** ja connectat a l'API.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Docker es baixa les imatges ja publicades (no cal compilar res). Aquesta app es publica com a imatge
+`ghcr.io/eric270992/docflow-ai-web` automàticament amb GitHub Actions a cada canvi.
 
-```bash
-ng generate component component-name
-```
+## 🧑‍💻 Desenvolupar el frontend sol
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+Si vols treballar només en el frontend (necessites el backend en marxa a `http://localhost:5255`):
 
 ```bash
-ng test
+npm install
+npm start          # ng serve
 ```
 
-## Running end-to-end tests
+Obre **http://localhost:4200**. El servidor de desenvolupament usa un **proxy** (`proxy.conf.json`)
+que redirigeix les crides `/api` cap al backend, evitant problemes de CORS. Si el backend és en una
+altra adreça, ajusta aquest fitxer.
 
-For end-to-end (e2e) testing, run:
+> Sense el backend en marxa, l'app carrega però la llista i les consultes no tindran dades.
 
-```bash
-ng e2e
-```
+## 🐳 Docker (aquest repositori)
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Aquest repo inclou el seu propi `Dockerfile` (build de producció servit per **nginx**, que a més fa de
+proxy `/api` cap al backend) i un workflow de GitHub Actions que publica la imatge a GHCR. La imatge la
+consumeix el `docker-compose.deploy.yml` del backend.
 
-## Additional Resources
+## 🧰 Stack
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Angular 21 (standalone) · PrimeNG 21 · TypeScript · nginx (en producció/Docker).
+
+## ✨ Què hi ha a la interfície
+
+- **Pujada** de factures per arrossegar i deixar anar (PDF/JPEG/PNG).
+- **Llista** de factures amb el seu estat (Validada / Revisió humana / Rebutjada) i incidències.
+- **Xat** de consultes en llenguatge natural sobre les factures.
