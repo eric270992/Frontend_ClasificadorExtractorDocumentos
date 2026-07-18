@@ -60,6 +60,7 @@ export interface FacturaDetalle {
   estado: EstadoFactura;
   nivelExtraccion: number;
   fechaIngesta: string;
+  fechaAprobacionManual: string | null;
   lineas: FacturaLinea[];
   incidencias: (Incidencia & { fechaCreacion: string })[];
 }

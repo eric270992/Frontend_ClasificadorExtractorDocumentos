@@ -75,6 +75,10 @@
         </td>
         <td>
           <p-button icon="pi pi-eye" [rounded]="true" [text]="true" size="small" (onClick)="verDetalle(f)" pTooltip="Veure detall" />
+          @if (f.estado === 'RevisionHumana') {
+            <p-button icon="pi pi-check" [rounded]="true" [text]="true" size="small" severity="success" (onClick)="aprobar(f)" pTooltip="Aprovar manualment" />
+          }
+          <p-button icon="pi pi-trash" [rounded]="true" [text]="true" size="small" severity="danger" (onClick)="eliminar(f)" pTooltip="Eliminar" />
         </td>
       </tr>
     </ng-template>
@@ -106,6 +110,7 @@
         @if (d.retencionIrpf) { <div><span class="lbl">IRPF</span>{{ d.retencionIrpf | number: '1.2-2' }}</div> }
         <div><span class="lbl">Total</span><strong>{{ d.total | number: '1.2-2' }}</strong></div>
         @if (d.reverseCharge) { <div><span class="lbl">Reverse charge</span>Sí</div> }
+        @if (d.fechaAprobacionManual) { <div><span class="lbl">Aprovada manualment</span>{{ d.fechaAprobacionManual | date: 'short' }}</div> }
       </div>
 
       <h4>Línies</h4>

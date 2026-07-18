@@ -22,4 +22,14 @@ export class DocumentosService {
   obtenerFactura(id: number): Observable<FacturaDetalle> {
     return this.http.get<FacturaDetalle>(`${API_BASE}/facturas/${id}`);
   }
+
+  /** Aprobación manual: solo válida si la factura está en RevisionHumana. */
+  aprobarFactura(id: number): Observable<void> {
+    return this.http.post<void>(`${API_BASE}/facturas/${id}/aprobar`, null);
+  }
+
+  /** Eliminación lógica (soft delete): deja de aparecer en el listado. */
+  eliminarFactura(id: number): Observable<void> {
+    return this.http.delete<void>(`${API_BASE}/facturas/${id}`);
+  }
 }

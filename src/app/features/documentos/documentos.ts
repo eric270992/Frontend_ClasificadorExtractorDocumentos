@@ -131,4 +131,35 @@ export class Documentos implements OnInit, OnDestroy {
       },
     });
   }
+
+  // ── Aprobación manual y eliminación ─────────────────────────────
+  aprobar(f: FacturaResumen): void {
+    this.documentosService.aprobarFactura(f.id).subscribe({
+      next: () => {
+        this.mensajeSubida.set({ tipo: 'success', texto: `Factura ${f.numeroFactura} aprovada manualment.` });
+        this.refrescar();
+      },
+      error: (err: HttpErrorResponse) => {
+        const detalle = err.error ?? err.message ?? 'Error desconegut';
+        this.mensajeSubida.set({ tipo: 'error', texto: `No s'ha pogut aprovar: ${detalle}` });
+      },
+    });
+  }
+
+  eliminar(f: FacturaResumen): void {
+    const proveedor = f.proveedor ? ` de ${f.proveedor}` : '';
+    if (!confirm(`Vols eliminar la factura ${f.numeroFactura}${proveedor}? Deixarà de sortir a la llista.`)) {
+      return;
+    }
+    this.documentosService.eliminarFactura(f.id).subscribe({
+      next: () => {
+        this.mensajeSubida.set({ tipo: 'success', texto: `Factura ${f.numeroFactura} eliminada.` });
+        this.refrescar();
+      },
+      error: (err: HttpErrorResponse) => {
+        const detalle = err.error ?? err.message ?? 'Error desconegut';
+        this.mensajeSubida.set({ tipo: 'error', texto: `No s'ha pogut eliminar: ${detalle}` });
+      },
+    });
+  }
 }
