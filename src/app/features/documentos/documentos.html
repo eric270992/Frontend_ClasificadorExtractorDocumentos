@@ -100,7 +100,9 @@
     <div class="detall">
       <div class="detall__grid">
         <div><span class="lbl">Proveïdor</span>{{ d.proveedor?.nombre ?? '—' }}</div>
-        <div><span class="lbl">NIF</span>{{ d.proveedor?.nif ?? '—' }}</div>
+        <div><span class="lbl">NIF proveïdor</span>{{ d.proveedor?.nif ?? '—' }}</div>
+        <div><span class="lbl">Client</span>{{ d.cliente?.nombre ?? '—' }}</div>
+        <div><span class="lbl">NIF client</span>{{ d.cliente?.nif ?? '—' }}</div>
         <div><span class="lbl">Número</span>{{ d.numeroFactura }}</div>
         <div><span class="lbl">Data</span>{{ d.fechaFactura }}</div>
         <div><span class="lbl">Estat</span><p-tag [value]="etiquetaEstado(d.estado)" [severity]="severidadEstado(d.estado)" /></div>

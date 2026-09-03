@@ -48,6 +48,8 @@ export interface FacturaLinea {
 export interface FacturaDetalle {
   id: number;
   proveedor: { nif: string; nombre: string } | null;
+  /** Receptor de la factura (quien paga). Cada campo puede faltar por separado. */
+  cliente: { nif: string | null; nombre: string | null } | null;
   numeroFactura: string;
   fechaFactura: string;
   fechaVencimiento: string | null;
