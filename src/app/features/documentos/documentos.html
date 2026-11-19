@@ -8,7 +8,7 @@
     (dragleave)="onDragLeave($event)"
     (drop)="onDrop($event)"
   >
-    <input type="file" id="fileInput" accept="application/pdf" hidden (change)="onSeleccionArchivo($event)" />
+    <input type="file" id="fileInput" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" hidden (change)="onSeleccionArchivo($event)" />
 
     @if (subiendo()) {
       <i class="pi pi-spin pi-spinner dropzone__icon"></i>
@@ -17,14 +17,14 @@
       <small class="dropzone__ajuda">Ingesta → extracció (LLM) → validació → staging</small>
     } @else {
       <i class="pi pi-cloud-upload dropzone__icon"></i>
-      <p class="dropzone__titol">Arrossega un PDF de factura aquí</p>
+      <p class="dropzone__titol">Arrossega una factura (PDF) o una foto de tiquet aquí</p>
       <p class="dropzone__o">o</p>
       <label for="fileInput">
         <span class="p-button p-button-outlined dropzone__boto">
           <i class="pi pi-folder-open"></i>&nbsp; Selecciona un fitxer
         </span>
       </label>
-      <small class="dropzone__ajuda">Només PDF · màx. 10 MB</small>
+      <small class="dropzone__ajuda">PDF, JPG o PNG · màx. 10 MB</small>
     }
   </div>
 

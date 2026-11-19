@@ -107,8 +107,10 @@ export class Documentos implements OnInit, OnDestroy {
   }
 
   private procesar(archivo: File): void {
-    if (archivo.type !== 'application/pdf' && !archivo.name.toLowerCase().endsWith('.pdf')) {
-      this.mensajeSubida.set({ tipo: 'error', texto: 'Només s\'admeten fitxers PDF.' });
+    // Filtre amable al client (tipus MIME o extensió). La validació de debò la fa el backend
+    // pels "magic bytes" del fitxer, així que aquí només evitem pujades òbvies que fallarien.
+    if (!esFormatoAdmitido(archivo)) {
+      this.mensajeSubida.set({ tipo: 'error', texto: 'Només s\'admeten fitxers PDF, JPG o PNG.' });
       return;
     }
     if (archivo.size > 10 * 1024 * 1024) {
@@ -233,4 +235,14 @@ export class Documentos implements OnInit, OnDestroy {
       },
     });
   }
+}
+
+/** Tipus admesos: PDF (factures) i imatges JPEG/PNG (p. ex. la foto d'un tiquet). Es mira el tipus MIME
+ * i, com a alternativa, l'extensió: alguns navegadors/sistemes deixen `file.type` buit. */
+const TIPOS_ADMITIDOS = ['application/pdf', 'image/jpeg', 'image/png'];
+const EXTENSIONES_ADMITIDAS = ['.pdf', '.jpg', '.jpeg', '.png'];
+
+function esFormatoAdmitido(archivo: File): boolean {
+  const nombre = archivo.name.toLowerCase();
+  return TIPOS_ADMITIDOS.includes(archivo.type) || EXTENSIONES_ADMITIDAS.some((ext) => nombre.endsWith(ext));
 }

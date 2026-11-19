@@ -8,7 +8,8 @@ import { ActualizarFacturaRequest, FacturaDetalle, FacturaResumen, ResultadoInge
 export class DocumentosService {
   private readonly http = inject(HttpClient);
 
-  /** Sube un PDF y ejecuta el pipeline completo (ingesta → extracción → validación → staging). */
+  /** Sube un documento (PDF, JPG o PNG) y ejecuta el pipeline completo (ingesta → extracción → validación → staging).
+   *  El campo del formulario sigue llamándose 'pdf' por compatibilidad con el backend, aunque sea una imagen. */
   subirDocumento(pdf: File): Observable<ResultadoIngesta> {
     const form = new FormData();
     form.append('pdf', pdf, pdf.name);
