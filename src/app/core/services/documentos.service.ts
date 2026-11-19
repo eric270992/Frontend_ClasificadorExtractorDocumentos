@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { API_BASE } from './api.config';
-import { FacturaDetalle, FacturaResumen, ResultadoIngesta } from '../models/factura.models';
+import { ActualizarFacturaRequest, FacturaDetalle, FacturaResumen, ResultadoIngesta } from '../models/factura.models';
 
 @Injectable({ providedIn: 'root' })
 export class DocumentosService {
@@ -31,5 +31,11 @@ export class DocumentosService {
   /** Eliminación lógica (soft delete): deja de aparecer en el listado. */
   eliminarFactura(id: number): Observable<void> {
     return this.http.delete<void>(`${API_BASE}/facturas/${id}`);
+  }
+
+  /** Edición manual de los campos extraídos: solo válida si la factura está en Validada o
+   * RevisionHumana. Cada campo modificado queda registrado en el historial de auditoría. */
+  actualizarFactura(id: number, request: ActualizarFacturaRequest): Observable<void> {
+    return this.http.put<void>(`${API_BASE}/facturas/${id}`, request);
   }
 }

@@ -98,22 +98,51 @@
 >
   @if (detalle(); as d) {
     <div class="detall">
-      <div class="detall__grid">
-        <div><span class="lbl">Proveïdor</span>{{ d.proveedor?.nombre ?? '—' }}</div>
-        <div><span class="lbl">NIF proveïdor</span>{{ d.proveedor?.nif ?? '—' }}</div>
-        <div><span class="lbl">Client</span>{{ d.cliente?.nombre ?? '—' }}</div>
-        <div><span class="lbl">NIF client</span>{{ d.cliente?.nif ?? '—' }}</div>
-        <div><span class="lbl">Número</span>{{ d.numeroFactura }}</div>
-        <div><span class="lbl">Data</span>{{ d.fechaFactura }}</div>
-        <div><span class="lbl">Estat</span><p-tag [value]="etiquetaEstado(d.estado)" [severity]="severidadEstado(d.estado)" /></div>
-        <div><span class="lbl">Moneda</span>{{ d.moneda }}</div>
-        <div><span class="lbl">Base</span>{{ d.baseImponible | number: '1.2-2' }}</div>
-        <div><span class="lbl">IVA</span>{{ d.cuotaIva | number: '1.2-2' }}</div>
-        @if (d.retencionIrpf) { <div><span class="lbl">IRPF</span>{{ d.retencionIrpf | number: '1.2-2' }}</div> }
-        <div><span class="lbl">Total</span><strong>{{ d.total | number: '1.2-2' }}</strong></div>
-        @if (d.reverseCharge) { <div><span class="lbl">Reverse charge</span>Sí</div> }
-        @if (d.fechaAprobacionManual) { <div><span class="lbl">Aprovada manualment</span>{{ d.fechaAprobacionManual | date: 'short' }}</div> }
+      <div class="detall__accions">
+        @if (!editando() && puedeEditar(d.estado)) {
+          <p-button label="Editar" icon="pi pi-pencil" size="small" [text]="true" (onClick)="iniciarEdicion()" />
+        }
+        @if (editando()) {
+          <p-button label="Desar" icon="pi pi-check" size="small" [loading]="guardando()" (onClick)="guardarEdicion()" />
+          <p-button label="Cancel·lar" icon="pi pi-times" size="small" severity="secondary" [text]="true" [disabled]="guardando()" (onClick)="cancelarEdicion()" />
+        }
       </div>
+
+      @if (editando() && edicion; as e) {
+        <div class="detall__grid">
+          <div><span class="lbl">Proveïdor</span>{{ d.proveedor?.nombre ?? '—' }}</div>
+          <div><span class="lbl">NIF proveïdor</span>{{ d.proveedor?.nif ?? '—' }}</div>
+          <div><span class="lbl">Client</span><input pInputText type="text" [(ngModel)]="e.nombreCliente" /></div>
+          <div><span class="lbl">NIF client</span><input pInputText type="text" [(ngModel)]="e.nifCliente" /></div>
+          <div><span class="lbl">Número</span><input pInputText type="text" [(ngModel)]="e.numeroFactura" /></div>
+          <div><span class="lbl">Data</span><input pInputText type="date" [(ngModel)]="e.fechaFactura" /></div>
+          <div><span class="lbl">Venciment</span><input pInputText type="date" [(ngModel)]="e.fechaVencimiento" /></div>
+          <div><span class="lbl">Estat</span><p-tag [value]="etiquetaEstado(d.estado)" [severity]="severidadEstado(d.estado)" /></div>
+          <div><span class="lbl">Moneda</span><input pInputText type="text" [(ngModel)]="e.moneda" /></div>
+          <div><span class="lbl">Base</span><p-inputNumber [(ngModel)]="e.baseImponible" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" /></div>
+          <div><span class="lbl">IVA</span><p-inputNumber [(ngModel)]="e.cuotaIva" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" /></div>
+          <div><span class="lbl">IRPF</span><p-inputNumber [(ngModel)]="e.retencionIrpf" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" /></div>
+          <div><span class="lbl">Total</span><p-inputNumber [(ngModel)]="e.total" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" /></div>
+          <div class="detall__checkbox"><p-checkbox [(ngModel)]="e.reverseCharge" [binary]="true" inputId="reverseCharge" /><label for="reverseCharge">Reverse charge</label></div>
+        </div>
+      } @else {
+        <div class="detall__grid">
+          <div><span class="lbl">Proveïdor</span>{{ d.proveedor?.nombre ?? '—' }}</div>
+          <div><span class="lbl">NIF proveïdor</span>{{ d.proveedor?.nif ?? '—' }}</div>
+          <div><span class="lbl">Client</span>{{ d.cliente?.nombre ?? '—' }}</div>
+          <div><span class="lbl">NIF client</span>{{ d.cliente?.nif ?? '—' }}</div>
+          <div><span class="lbl">Número</span>{{ d.numeroFactura }}</div>
+          <div><span class="lbl">Data</span>{{ d.fechaFactura }}</div>
+          <div><span class="lbl">Estat</span><p-tag [value]="etiquetaEstado(d.estado)" [severity]="severidadEstado(d.estado)" /></div>
+          <div><span class="lbl">Moneda</span>{{ d.moneda }}</div>
+          <div><span class="lbl">Base</span>{{ d.baseImponible | number: '1.2-2' }}</div>
+          <div><span class="lbl">IVA</span>{{ d.cuotaIva | number: '1.2-2' }}</div>
+          @if (d.retencionIrpf) { <div><span class="lbl">IRPF</span>{{ d.retencionIrpf | number: '1.2-2' }}</div> }
+          <div><span class="lbl">Total</span><strong>{{ d.total | number: '1.2-2' }}</strong></div>
+          @if (d.reverseCharge) { <div><span class="lbl">Reverse charge</span>Sí</div> }
+          @if (d.fechaAprobacionManual) { <div><span class="lbl">Aprovada manualment</span>{{ d.fechaAprobacionManual | date: 'short' }}</div> }
+        </div>
+      }
 
       <h4>Línies</h4>
       <p-table [value]="d.lineas" styleClass="p-datatable-sm">
@@ -137,6 +166,22 @@
         <ul class="incidencies">
           @for (i of d.incidencias; track i.codigo + i.fechaCreacion) {
             <li><strong>{{ i.codigo }}</strong> — {{ i.detalle }}</li>
+          }
+        </ul>
+      }
+
+      @if (d.historial.length) {
+        <h4>Historial de canvis</h4>
+        <ul class="historial">
+          @for (h of d.historial; track h.campo + h.fechaCambio) {
+            <li>
+              <span class="historial__data">{{ h.fechaCambio | date: 'short' }}</span>
+              <strong>{{ h.campo }}</strong>:
+              <span class="historial__anterior">{{ h.valorAnterior ?? '—' }}</span>
+              →
+              <span class="historial__nou">{{ h.valorNuevo ?? '—' }}</span>
+              <small>({{ h.usuario }})</small>
+            </li>
           }
         </ul>
       }

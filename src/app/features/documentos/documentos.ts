@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Subscription, interval, switchMap } from 'rxjs';
 
@@ -9,16 +10,23 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { MessageModule } from 'primeng/message';
+import { InputTextModule } from 'primeng/inputtext';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { CheckboxModule } from 'primeng/checkbox';
 
 import { DocumentosService } from '../../core/services/documentos.service';
-import { FacturaDetalle, FacturaResumen } from '../../core/models/factura.models';
+import { ActualizarFacturaRequest, FacturaDetalle, FacturaResumen } from '../../core/models/factura.models';
 import { etiquetaEstado, severidadEstado } from '../../core/estado-ui';
+
+/** Estados sobre los que tiene sentido editar los campos extraídos a mano. */
+const ESTADOS_EDITABLES = ['Validada', 'RevisionHumana'];
 
 @Component({
   selector: 'app-documentos',
   standalone: true,
   imports: [
-    CommonModule, TableModule, TagModule, ButtonModule, DialogModule, ProgressBarModule, MessageModule,
+    CommonModule, FormsModule, TableModule, TagModule, ButtonModule, DialogModule, ProgressBarModule,
+    MessageModule, InputTextModule, InputNumberModule, CheckboxModule,
   ],
   templateUrl: './documentos.html',
   styleUrl: './documentos.scss',
@@ -34,6 +42,12 @@ export class Documentos implements OnInit, OnDestroy {
 
   readonly detalle = signal<FacturaDetalle | null>(null);
   readonly detalleVisible = signal(false);
+
+  /** true mientras el diálogo de detalle muestra el formulario editable en lugar de la vista de solo lectura. */
+  readonly editando = signal(false);
+  readonly guardando = signal(false);
+  /** Copia editable de los campos de `detalle()`; solo existe mientras `editando()` es true. */
+  edicion: ActualizarFacturaRequest | null = null;
 
   readonly etiquetaEstado = etiquetaEstado;
   readonly severidadEstado = severidadEstado;
@@ -128,6 +142,63 @@ export class Documentos implements OnInit, OnDestroy {
       next: (d) => {
         this.detalle.set(d);
         this.detalleVisible.set(true);
+        this.editando.set(false);
+        this.edicion = null;
+      },
+    });
+  }
+
+  // ── Edición manual de los campos extraídos ──────────────────────
+  puedeEditar(estado: string): boolean {
+    return ESTADOS_EDITABLES.includes(estado);
+  }
+
+  iniciarEdicion(): void {
+    const d = this.detalle();
+    if (!d) {
+      return;
+    }
+    this.edicion = {
+      nifCliente: d.cliente?.nif ?? null,
+      nombreCliente: d.cliente?.nombre ?? null,
+      numeroFactura: d.numeroFactura,
+      fechaFactura: d.fechaFactura,
+      fechaVencimiento: d.fechaVencimiento,
+      moneda: d.moneda,
+      baseImponible: d.baseImponible,
+      cuotaIva: d.cuotaIva,
+      retencionIrpf: d.retencionIrpf,
+      total: d.total,
+      reverseCharge: d.reverseCharge,
+    };
+    this.editando.set(true);
+  }
+
+  cancelarEdicion(): void {
+    this.editando.set(false);
+    this.edicion = null;
+  }
+
+  guardarEdicion(): void {
+    const d = this.detalle();
+    if (!d || !this.edicion) {
+      return;
+    }
+    this.guardando.set(true);
+    this.documentosService.actualizarFactura(d.id, this.edicion).subscribe({
+      next: () => {
+        this.guardando.set(false);
+        this.editando.set(false);
+        this.edicion = null;
+        this.mensajeSubida.set({ tipo: 'success', texto: `Factura ${d.numeroFactura} actualitzada.` });
+        // Recarrega el detall (camps nous + historial d'auditoria) i la llista
+        this.documentosService.obtenerFactura(d.id).subscribe({ next: (nou) => this.detalle.set(nou) });
+        this.refrescar();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.guardando.set(false);
+        const detalle = err.error ?? err.message ?? 'Error desconegut';
+        this.mensajeSubida.set({ tipo: 'error', texto: `No s'ha pogut desar: ${detalle}` });
       },
     });
   }
