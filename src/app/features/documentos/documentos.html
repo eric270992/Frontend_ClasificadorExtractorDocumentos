@@ -159,30 +159,30 @@
             <tr><th>#</th><th>Descripció</th><th class="col-num">Qt.</th><th class="col-num">Preu</th><th class="col-num">%IVA</th><th class="col-num">Import</th><th></th></tr>
           </thead>
           <tbody>
-            @for (l of lineas; track $index; let i = $index) {
+            @for (linea of lineas; track $index; let posicion = $index) {
               <tr>
-                <td>{{ i + 1 }}</td>
-                <td><input pInputText type="text" [(ngModel)]="l.descripcion" placeholder="Descripció" /></td>
+                <td>{{ posicion + 1 }}</td>
+                <td><input pInputText type="text" [(ngModel)]="linea.descripcion" placeholder="Descripció" /></td>
                 <td>
-                  <p-inputNumber [ngModel]="l.cantidad" (ngModelChange)="l.cantidad = $event; recalcularImporte(l)"
+                  <p-inputNumber [ngModel]="linea.cantidad" (ngModelChange)="cambiarCantidad(linea, $event)"
                     mode="decimal" [maxFractionDigits]="4" inputStyleClass="num" />
                 </td>
                 <td>
-                  <p-inputNumber [ngModel]="l.precioUnitario" (ngModelChange)="l.precioUnitario = $event; recalcularImporte(l)"
+                  <p-inputNumber [ngModel]="linea.precioUnitario" (ngModelChange)="cambiarPrecioUnitario(linea, $event)"
                     mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="4" inputStyleClass="num" />
                 </td>
                 <td>
                   <!-- Buit = el document no indica el %IVA d'aquesta línia (no és el mateix que 0%) -->
-                  <p-inputNumber [(ngModel)]="l.porcentajeIva" mode="decimal" [min]="0" [max]="100" [maxFractionDigits]="2"
+                  <p-inputNumber [(ngModel)]="linea.porcentajeIva" mode="decimal" [min]="0" [max]="100" [maxFractionDigits]="2"
                     placeholder="—" inputStyleClass="num" />
                 </td>
                 <td>
-                  <p-inputNumber [(ngModel)]="l.importeLinea" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2"
+                  <p-inputNumber [(ngModel)]="linea.importeLinea" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2"
                     inputStyleClass="num" />
                 </td>
                 <td>
                   <p-button icon="pi pi-trash" [rounded]="true" [text]="true" size="small" severity="danger"
-                    (onClick)="eliminarLinea(i)" />
+                    (onClick)="eliminarLinea(posicion)" />
                 </td>
               </tr>
             }
@@ -203,6 +203,10 @@
             pTooltip="Base, IVA i total a partir de les línies (suposant imports sense IVA)"
             (onClick)="recalcularCabeceraDesdeLineas()" />
         </div>
+        <!-- Avís del botó "Recalcular capçalera": dins el diàleg perquè l'usuari el vegi -->
+        @if (avisoEdicion(); as aviso) {
+          <p-message severity="warn" [text]="aviso" />
+        }
       } @else {
         <p-table [value]="d.lineas" styleClass="p-datatable-sm">
           <ng-template pTemplate="header">

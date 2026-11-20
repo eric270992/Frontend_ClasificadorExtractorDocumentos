@@ -60,6 +60,8 @@ export class Documentos implements OnInit, OnDestroy {
   /** true mientras el diálogo de detalle muestra el formulario editable en lugar de la vista de solo lectura. */
   readonly editando = signal(false);
   readonly guardando = signal(false);
+  /** Avís que es mostra DINS el diàleg d'edició (el de mensajeSubida queda darrere del diàleg i no es veu). */
+  readonly avisoEdicion = signal<string | null>(null);
   /** Copia editable de los campos de `detalle()`; solo existe mientras `editando()` es true. */
   edicion: ActualizarFacturaRequest | null = null;
 
@@ -215,10 +217,12 @@ export class Documentos implements OnInit, OnDestroy {
         importeLinea: l.importeLinea,
       })),
     };
+    this.avisoEdicion.set(null);
     this.editando.set(true);
   }
 
   cancelarEdicion(): void {
+    this.avisoEdicion.set(null);
     this.editando.set(false);
     this.edicion = null;
   }
@@ -238,57 +242,114 @@ export class Documentos implements OnInit, OnDestroy {
     this.edicion?.lineas?.splice(index, 1);
   }
 
-  /** En canviar quantitat o preu es proposa l'import = quantitat × preu. L'usuari el pot sobreescriure
-   *  després (descomptes, arrodoniments de la factura): l'import no es recalcula si només es toca l'import. */
-  recalcularImporte(linea: LineaEditada): void {
-    linea.importeLinea = redondear2((linea.cantidad ?? 0) * (linea.precioUnitario ?? 0));
+  /** L'usuari ha canviat la quantitat d'una línia: es desa el valor nou i es recalcula l'import. */
+  cambiarCantidad(linea: LineaEditada, cantidadNueva: number): void {
+    linea.cantidad = cantidadNueva;
+    this.recalcularImporte(linea);
   }
 
-  /** Suma dels imports de les línies en edició. */
+  /** L'usuari ha canviat el preu unitari d'una línia: es desa el valor nou i es recalcula l'import. */
+  cambiarPrecioUnitario(linea: LineaEditada, precioNuevo: number): void {
+    linea.precioUnitario = precioNuevo;
+    this.recalcularImporte(linea);
+  }
+
+  /** Import de la línia = quantitat × preu, arrodonit a cèntims.
+   *  Només es crida en canviar quantitat o preu. Si l'usuari escriu l'import a mà (un descompte,
+   *  un arrodoniment de la factura), aquest valor es respecta i no es torna a calcular. */
+  recalcularImporte(linea: LineaEditada): void {
+    // Si el camp està buit mentre l'usuari escriu, el valor és null: es compta com 0
+    const cantidad = linea.cantidad ?? 0;
+    const precioUnitario = linea.precioUnitario ?? 0;
+    linea.importeLinea = redondear2(cantidad * precioUnitario);
+  }
+
+  /** Suma dels imports de totes les línies que s'estan editant. */
   sumaLineas(): number {
-    return redondear2((this.edicion?.lineas ?? []).reduce((suma, l) => suma + (l.importeLinea ?? 0), 0));
+    if (!this.edicion?.lineas) {
+      return 0;
+    }
+
+    let suma = 0;
+    for (const linea of this.edicion.lineas) {
+      suma = suma + (linea.importeLinea ?? 0);
+    }
+    return redondear2(suma);
   }
 
   /**
-   * Quadre de les línies, per mostrar-lo en temps real. Només és una ajuda: qui decideix de debò és el
-   * backend en desar (les mateixes regles que en la ingesta).
-   * Les línies poden portar l'IVA inclòs o no, i el frontend no ho sap: es dona per bo si quadra amb
-   * la base (sense IVA) o amb base + IVA (IVA inclòs).
+   * Indica si la suma de les línies quadra amb la capçalera, per mostrar-ho en temps real.
+   * Només és una ajuda: qui decideix de debò és el backend en desar (les mateixes regles que a la ingesta).
+   * El frontend no sap si els imports de línia porten l'IVA inclòs, per això es comproven els dos casos:
+   *  - 'base'       → la suma coincideix amb la base imposable (imports sense IVA)
+   *  - 'baseMasIva' → la suma coincideix amb base + IVA (imports amb IVA inclòs)
+   *  - null         → no quadra amb cap dels dos
    */
   cuadreLineas(): 'base' | 'baseMasIva' | null {
-    const e = this.edicion;
-    if (!e) {
+    const facturaEditada = this.edicion;
+    if (!facturaEditada) {
       return null;
     }
-    const suma = this.sumaLineas();
-    if (Math.abs(suma - (e.baseImponible ?? 0)) <= TOLERANCIA_CUADRE) {
+
+    const sumaLineas = this.sumaLineas();
+    const baseImponible = facturaEditada.baseImponible ?? 0;
+    const cuotaIva = facturaEditada.cuotaIva ?? 0;
+
+    const diferenciaConBase = Math.abs(sumaLineas - baseImponible);
+    if (diferenciaConBase <= TOLERANCIA_CUADRE) {
       return 'base';
     }
-    if (Math.abs(suma - ((e.baseImponible ?? 0) + (e.cuotaIva ?? 0))) <= TOLERANCIA_CUADRE) {
+
+    const diferenciaConBaseMasIva = Math.abs(sumaLineas - (baseImponible + cuotaIva));
+    if (diferenciaConBaseMasIva <= TOLERANCIA_CUADRE) {
       return 'baseMasIva';
     }
+
     return null;
   }
 
   /**
-   * Omple base, quota i total a partir de les línies, suposant que els imports de línia NO porten IVA
-   * (el cas habitual). Si alguna línia no té %IVA, la quota no es pot calcular i no es toca res.
+   * Botó "Recalcular capçalera": omple base, quota d'IVA i total a partir de les línies,
+   * suposant que els imports de línia NO porten IVA (el cas habitual).
+   * No és automàtic a propòsit: els totals de capçalera són els del document i serveixen per detectar errors.
+   * Si alguna línia no té %IVA, la quota no es pot calcular i no es toca res.
    */
   recalcularCabeceraDesdeLineas(): void {
-    const e = this.edicion;
-    const lineas = e?.lineas ?? [];
-    if (!e || lineas.length === 0) {
+    // Cada clic comença net: si ara ja es pot calcular, l'avís anterior desapareix
+    this.avisoEdicion.set(null);
+
+    const facturaEditada = this.edicion;
+    if (!facturaEditada?.lineas || facturaEditada.lineas.length === 0) {
       return;
     }
-    if (lineas.some((l) => l.porcentajeIva === null)) {
-      this.mensajeSubida.set({ tipo: 'warn', texto: "Hi ha línies sense %IVA: no es pot calcular la quota d'IVA." });
-      return;
+
+    // 1. Comprovar que totes les línies tenen %IVA (buit no vol dir 0%)
+    for (const linea of facturaEditada.lineas) {
+      if (linea.porcentajeIva === null) {
+        this.avisoEdicion.set("Hi ha línies sense %IVA: no es pot calcular la quota d'IVA. Omple el %IVA de totes les línies i torna-ho a provar.");
+        return;
+      }
     }
-    const base = this.sumaLineas();
-    const cuota = redondear2(lineas.reduce((suma, l) => suma + (l.importeLinea ?? 0) * (l.porcentajeIva ?? 0) / 100, 0));
-    e.baseImponible = base;
-    e.cuotaIva = cuota;
-    e.total = redondear2(base + cuota - (e.retencionIrpf ?? 0));
+
+    // 2. Base imposable = suma dels imports de les línies
+    const baseImponible = this.sumaLineas();
+
+    // 3. Quota d'IVA = suma de (import de la línia × %IVA de la línia / 100)
+    let cuotaIva = 0;
+    for (const linea of facturaEditada.lineas) {
+      const importeLinea = linea.importeLinea ?? 0;
+      const porcentajeIva = linea.porcentajeIva ?? 0;
+      cuotaIva = cuotaIva + (importeLinea * porcentajeIva) / 100;
+    }
+    cuotaIva = redondear2(cuotaIva);
+
+    // 4. Total = base + IVA − retenció d'IRPF (si n'hi ha)
+    const retencionIrpf = facturaEditada.retencionIrpf ?? 0;
+    const total = redondear2(baseImponible + cuotaIva - retencionIrpf);
+
+    facturaEditada.baseImponible = baseImponible;
+    facturaEditada.cuotaIva = cuotaIva;
+    facturaEditada.total = total;
   }
 
   guardarEdicion(): void {
