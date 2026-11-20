@@ -16,12 +16,20 @@ import { CheckboxModule } from 'primeng/checkbox';
 
 import { DocumentosService } from '../../core/services/documentos.service';
 import {
-  ActualizarFacturaRequest, ConfiguracionIngesta, FacturaDetalle, FacturaResumen,
+  ActualizarFacturaRequest, ConfiguracionIngesta, FacturaDetalle, FacturaResumen, LineaEditada,
 } from '../../core/models/factura.models';
 import { etiquetaEstado, severidadEstado } from '../../core/estado-ui';
 
 /** Estados sobre los que tiene sentido editar los campos extraídos a mano. */
 const ESTADOS_EDITABLES = ['Validada', 'RevisionHumana'];
+
+/** Mateixa tolerància que el backend (ContextoValidacion.ToleranciaCuadre): ±0,02 € per arrodoniments. */
+const TOLERANCIA_CUADRE = 0.02;
+
+/** Arrodoniment a cèntims. Number.EPSILON evita que 1.005 * 100 = 100.49999… arrodoneixi cap avall. */
+function redondear2(valor: number): number {
+  return Math.round((valor + Number.EPSILON) * 100) / 100;
+}
 
 @Component({
   selector: 'app-documentos',
@@ -52,6 +60,8 @@ export class Documentos implements OnInit, OnDestroy {
   /** true mientras el diálogo de detalle muestra el formulario editable en lugar de la vista de solo lectura. */
   readonly editando = signal(false);
   readonly guardando = signal(false);
+  /** Avís que es mostra DINS el diàleg d'edició (el de mensajeSubida queda darrere del diàleg i no es veu). */
+  readonly avisoEdicion = signal<string | null>(null);
   /** Copia editable de los campos de `detalle()`; solo existe mientras `editando()` es true. */
   edicion: ActualizarFacturaRequest | null = null;
 
@@ -197,13 +207,149 @@ export class Documentos implements OnInit, OnDestroy {
       retencionIrpf: d.retencionIrpf,
       total: d.total,
       reverseCharge: d.reverseCharge,
+      // Còpia de les línies (no la referència): si es cancel·la, el detall original queda intacte
+      lineas: d.lineas.map((l) => ({
+        id: l.id,
+        descripcion: l.descripcion,
+        cantidad: l.cantidad,
+        precioUnitario: l.precioUnitario,
+        porcentajeIva: l.porcentajeIva,
+        importeLinea: l.importeLinea,
+      })),
     };
+    this.avisoEdicion.set(null);
     this.editando.set(true);
   }
 
   cancelarEdicion(): void {
+    this.avisoEdicion.set(null);
     this.editando.set(false);
     this.edicion = null;
+  }
+
+  // ── Edició de línies ─────────────────────────────────────────────
+  /** Línia nova al final. Proposa el %IVA de l'última línia, que sol ser el mateix. */
+  anadirLinea(): void {
+    const lineas = this.edicion?.lineas;
+    if (!lineas) {
+      return;
+    }
+    const ultimoIva = lineas.length ? lineas[lineas.length - 1].porcentajeIva : null;
+    lineas.push({ id: null, descripcion: '', cantidad: 1, precioUnitario: 0, porcentajeIva: ultimoIva, importeLinea: 0 });
+  }
+
+  eliminarLinea(index: number): void {
+    this.edicion?.lineas?.splice(index, 1);
+  }
+
+  /** L'usuari ha canviat la quantitat d'una línia: es desa el valor nou i es recalcula l'import. */
+  cambiarCantidad(linea: LineaEditada, cantidadNueva: number): void {
+    linea.cantidad = cantidadNueva;
+    this.recalcularImporte(linea);
+  }
+
+  /** L'usuari ha canviat el preu unitari d'una línia: es desa el valor nou i es recalcula l'import. */
+  cambiarPrecioUnitario(linea: LineaEditada, precioNuevo: number): void {
+    linea.precioUnitario = precioNuevo;
+    this.recalcularImporte(linea);
+  }
+
+  /** Import de la línia = quantitat × preu, arrodonit a cèntims.
+   *  Només es crida en canviar quantitat o preu. Si l'usuari escriu l'import a mà (un descompte,
+   *  un arrodoniment de la factura), aquest valor es respecta i no es torna a calcular. */
+  recalcularImporte(linea: LineaEditada): void {
+    // Si el camp està buit mentre l'usuari escriu, el valor és null: es compta com 0
+    const cantidad = linea.cantidad ?? 0;
+    const precioUnitario = linea.precioUnitario ?? 0;
+    linea.importeLinea = redondear2(cantidad * precioUnitario);
+  }
+
+  /** Suma dels imports de totes les línies que s'estan editant. */
+  sumaLineas(): number {
+    if (!this.edicion?.lineas) {
+      return 0;
+    }
+
+    let suma = 0;
+    for (const linea of this.edicion.lineas) {
+      suma = suma + (linea.importeLinea ?? 0);
+    }
+    return redondear2(suma);
+  }
+
+  /**
+   * Indica si la suma de les línies quadra amb la capçalera, per mostrar-ho en temps real.
+   * Només és una ajuda: qui decideix de debò és el backend en desar (les mateixes regles que a la ingesta).
+   * El frontend no sap si els imports de línia porten l'IVA inclòs, per això es comproven els dos casos:
+   *  - 'base'       → la suma coincideix amb la base imposable (imports sense IVA)
+   *  - 'baseMasIva' → la suma coincideix amb base + IVA (imports amb IVA inclòs)
+   *  - null         → no quadra amb cap dels dos
+   */
+  cuadreLineas(): 'base' | 'baseMasIva' | null {
+    const facturaEditada = this.edicion;
+    if (!facturaEditada) {
+      return null;
+    }
+
+    const sumaLineas = this.sumaLineas();
+    const baseImponible = facturaEditada.baseImponible ?? 0;
+    const cuotaIva = facturaEditada.cuotaIva ?? 0;
+
+    const diferenciaConBase = Math.abs(sumaLineas - baseImponible);
+    if (diferenciaConBase <= TOLERANCIA_CUADRE) {
+      return 'base';
+    }
+
+    const diferenciaConBaseMasIva = Math.abs(sumaLineas - (baseImponible + cuotaIva));
+    if (diferenciaConBaseMasIva <= TOLERANCIA_CUADRE) {
+      return 'baseMasIva';
+    }
+
+    return null;
+  }
+
+  /**
+   * Botó "Recalcular capçalera": omple base, quota d'IVA i total a partir de les línies,
+   * suposant que els imports de línia NO porten IVA (el cas habitual).
+   * No és automàtic a propòsit: els totals de capçalera són els del document i serveixen per detectar errors.
+   * Si alguna línia no té %IVA, la quota no es pot calcular i no es toca res.
+   */
+  recalcularCabeceraDesdeLineas(): void {
+    // Cada clic comença net: si ara ja es pot calcular, l'avís anterior desapareix
+    this.avisoEdicion.set(null);
+
+    const facturaEditada = this.edicion;
+    if (!facturaEditada?.lineas || facturaEditada.lineas.length === 0) {
+      return;
+    }
+
+    // 1. Comprovar que totes les línies tenen %IVA (buit no vol dir 0%)
+    for (const linea of facturaEditada.lineas) {
+      if (linea.porcentajeIva === null) {
+        this.avisoEdicion.set("Hi ha línies sense %IVA: no es pot calcular la quota d'IVA. Omple el %IVA de totes les línies i torna-ho a provar.");
+        return;
+      }
+    }
+
+    // 2. Base imposable = suma dels imports de les línies
+    const baseImponible = this.sumaLineas();
+
+    // 3. Quota d'IVA = suma de (import de la línia × %IVA de la línia / 100)
+    let cuotaIva = 0;
+    for (const linea of facturaEditada.lineas) {
+      const importeLinea = linea.importeLinea ?? 0;
+      const porcentajeIva = linea.porcentajeIva ?? 0;
+      cuotaIva = cuotaIva + (importeLinea * porcentajeIva) / 100;
+    }
+    cuotaIva = redondear2(cuotaIva);
+
+    // 4. Total = base + IVA − retenció d'IRPF (si n'hi ha)
+    const retencionIrpf = facturaEditada.retencionIrpf ?? 0;
+    const total = redondear2(baseImponible + cuotaIva - retencionIrpf);
+
+    facturaEditada.baseImponible = baseImponible;
+    facturaEditada.cuotaIva = cuotaIva;
+    facturaEditada.total = total;
   }
 
   guardarEdicion(): void {
@@ -211,13 +357,26 @@ export class Documentos implements OnInit, OnDestroy {
     if (!d || !this.edicion) {
       return;
     }
+    // Comprovació ràpida abans d'enviar; el backend la torna a fer igualment
+    const sinDescripcion = (this.edicion.lineas ?? []).findIndex((l) => !l.descripcion?.trim());
+    if (sinDescripcion >= 0) {
+      this.mensajeSubida.set({ tipo: 'error', texto: `La línia ${sinDescripcion + 1} no té descripció.` });
+      return;
+    }
+
     this.guardando.set(true);
     this.documentosService.actualizarFactura(d.id, this.edicion).subscribe({
-      next: () => {
+      next: (r) => {
         this.guardando.set(false);
         this.editando.set(false);
         this.edicion = null;
-        this.mensajeSubida.set({ tipo: 'success', texto: `Factura ${d.numeroFactura} actualitzada.` });
+        // El backend ha tornat a passar les regles: es mostra com ha quedat la factura
+        const texto = !r.huboCambios
+          ? `Factura ${d.numeroFactura}: no hi havia cap canvi.`
+          : `Factura ${d.numeroFactura} actualitzada → ${etiquetaEstado(r.estado)}` +
+            (r.incidencias.length ? ` · ${r.incidencias.length} incidència(es)` : ' · sense incidències');
+        const tipo = r.huboCambios && r.incidencias.length ? 'warn' : 'success';
+        this.mensajeSubida.set({ tipo, texto });
         // Recarrega el detall (camps nous + historial d'auditoria) i la llista
         this.documentosService.obtenerFactura(d.id).subscribe({ next: (nou) => this.detalle.set(nou) });
         this.refrescar();
@@ -231,10 +390,34 @@ export class Documentos implements OnInit, OnDestroy {
   }
 
   // ── Aprobación manual y eliminación ─────────────────────────────
+  /** "Aprovar igualment" des de la llista. Només hi ha el nombre d'incidències, no el detall. */
   aprobar(f: FacturaResumen): void {
-    this.documentosService.aprobarFactura(f.id).subscribe({
+    const avis = f.numIncidencias > 0
+      ? `Té ${f.numIncidencias} incidència(es) pendent(s) de revisió.\n`
+      : '';
+    this.confirmarYAprobar(f.id, f.numeroFactura, avis);
+  }
+
+  /** "Aprovar igualment" des del detall: aquí es poden llistar les incidències pendents. */
+  aprobarDetalle(d: FacturaDetalle): void {
+    const avis = d.incidencias.length
+      ? `Incidències pendents:\n${d.incidencias.map((i) => `· ${i.codigo}: ${i.detalle}`).join('\n')}\n`
+      : '';
+    this.confirmarYAprobar(d.id, d.numeroFactura, avis);
+  }
+
+  /** L'aprovació queda registrada a l'historial juntament amb les incidències que quedaven pendents. */
+  private confirmarYAprobar(id: number, numeroFactura: string, avis: string): void {
+    if (!confirm(`${avis}\nVols aprovar igualment la factura ${numeroFactura}? Quedarà registrat a l'historial.`)) {
+      return;
+    }
+    this.documentosService.aprobarFactura(id).subscribe({
       next: () => {
-        this.mensajeSubida.set({ tipo: 'success', texto: `Factura ${f.numeroFactura} aprovada manualment.` });
+        this.mensajeSubida.set({ tipo: 'success', texto: `Factura ${numeroFactura} aprovada manualment.` });
+        // Si el detall d'aquesta factura és obert, es recarrega (estat nou + historial)
+        if (this.detalle()?.id === id) {
+          this.documentosService.obtenerFactura(id).subscribe({ next: (nou) => this.detalle.set(nou) });
+        }
         this.refrescar();
       },
       error: (err: HttpErrorResponse) => {
