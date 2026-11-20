@@ -24,7 +24,10 @@
           <i class="pi pi-folder-open"></i>&nbsp; Selecciona un fitxer
         </span>
       </label>
-      <small class="dropzone__ajuda">PDF, JPG o PNG · màx. 10 MB</small>
+      <small class="dropzone__ajuda">
+        PDF, JPG o PNG · màx. {{ configuracion().tamanoMaximoMb }} MB
+        · màx. {{ configuracion().maxPaginasPorDocumento }} pàgines per document
+      </small>
     }
   </div>
 

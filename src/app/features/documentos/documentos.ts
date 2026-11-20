@@ -15,7 +15,9 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { CheckboxModule } from 'primeng/checkbox';
 
 import { DocumentosService } from '../../core/services/documentos.service';
-import { ActualizarFacturaRequest, FacturaDetalle, FacturaResumen } from '../../core/models/factura.models';
+import {
+  ActualizarFacturaRequest, ConfiguracionIngesta, FacturaDetalle, FacturaResumen,
+} from '../../core/models/factura.models';
 import { etiquetaEstado, severidadEstado } from '../../core/estado-ui';
 
 /** Estados sobre los que tiene sentido editar los campos extraídos a mano. */
@@ -38,6 +40,10 @@ export class Documentos implements OnInit, OnDestroy {
   readonly cargandoLista = signal(false);
   readonly subiendo = signal(false);
   readonly arrastrando = signal(false);
+  /** Límits de pujada. Valors per defecte mentre no arriba la resposta del backend (o si falla):
+   *  no és crític, perquè el backend torna a validar quan es puja el fitxer. */
+  readonly configuracion = signal<ConfiguracionIngesta>({ maxPaginasPorDocumento: 4, tamanoMaximoMb: 10 });
+
   readonly mensajeSubida = signal<{ tipo: 'success' | 'error' | 'warn'; texto: string } | null>(null);
 
   readonly detalle = signal<FacturaDetalle | null>(null);
@@ -55,6 +61,7 @@ export class Documentos implements OnInit, OnDestroy {
   private pollingSub?: Subscription;
 
   ngOnInit(): void {
+    this.cargarConfiguracion();
     this.refrescar();
     // Refresco por polling simple (sin SignalR en E1, según SPEC E1-F5)
     this.pollingSub = interval(4000)
@@ -64,6 +71,16 @@ export class Documentos implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.pollingSub?.unsubscribe();
+  }
+
+  /** Mateix patró que refrescar(): crida al servei, subscribe i es desa al signal.
+   *  L'Observable de l'HttpClient emet un sol valor i s'acaba sol: no cal unsubscribe. */
+  private cargarConfiguracion(): void {
+    this.documentosService.obtenerConfiguracion().subscribe({
+      next: (c) => this.configuracion.set(c),
+      // Si falla, ens quedem amb els valors per defecte: no bloquegem la pantalla per això
+      error: () => {},
+    });
   }
 
   refrescar(): void {
@@ -113,8 +130,10 @@ export class Documentos implements OnInit, OnDestroy {
       this.mensajeSubida.set({ tipo: 'error', texto: 'Només s\'admeten fitxers PDF, JPG o PNG.' });
       return;
     }
-    if (archivo.size > 10 * 1024 * 1024) {
-      this.mensajeSubida.set({ tipo: 'error', texto: 'El fitxer supera els 10 MB.' });
+    // La mida màxima ara ve del backend en lloc d'estar escrita a mà aquí
+    const maxMb = this.configuracion().tamanoMaximoMb;
+    if (archivo.size > maxMb * 1024 * 1024) {
+      this.mensajeSubida.set({ tipo: 'error', texto: `El fitxer supera els ${maxMb} MB.` });
       return;
     }
 
@@ -133,6 +152,12 @@ export class Documentos implements OnInit, OnDestroy {
         this.subiendo.set(false);
         const detalle = err.error?.error ?? err.message ?? 'Error desconegut';
         this.mensajeSubida.set({ tipo: 'error', texto: `No s'ha pogut processar: ${detalle}` });
+
+        // 422 = el backend ha rebutjat el document (p. ex. massa pàgines). Tornem a demanar la
+        // configuració per si el límit ha canviat mentre l'aplicació estava oberta.
+        if (err.status === 422) {
+          this.cargarConfiguracion();
+        }
         this.refrescar();
       },
     });

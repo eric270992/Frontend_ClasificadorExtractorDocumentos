@@ -2,7 +2,9 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { API_BASE } from './api.config';
-import { ActualizarFacturaRequest, FacturaDetalle, FacturaResumen, ResultadoIngesta } from '../models/factura.models';
+import {
+  ActualizarFacturaRequest, ConfiguracionIngesta, FacturaDetalle, FacturaResumen, ResultadoIngesta,
+} from '../models/factura.models';
 
 @Injectable({ providedIn: 'root' })
 export class DocumentosService {
@@ -14,6 +16,12 @@ export class DocumentosService {
     const form = new FormData();
     form.append('pdf', pdf, pdf.name);
     return this.http.post<ResultadoIngesta>(`${API_BASE}/documentos`, form);
+  }
+
+  /** Demana al backend els límits actuals (pàgines i mida). No es guarda enlloc: cada vegada que
+   *  s'obre la pantalla es torna a demanar, així sempre es mostra el valor vigent. */
+  obtenerConfiguracion(): Observable<ConfiguracionIngesta> {
+    return this.http.get<ConfiguracionIngesta>(`${API_BASE}/configuracion`);
   }
 
   listarFacturas(): Observable<FacturaResumen[]> {

@@ -101,3 +101,10 @@ export interface RespuestaConsulta {
   columnas: string[];
   filas: Record<string, unknown>[];
 }
+
+/** Límits de pujada vigents al backend (GET /configuracion). Es demanen en obrir la pantalla de
+ *  documents, de manera que si es canvien al backend, en tornar a entrar ja surt el valor nou. */
+export interface ConfiguracionIngesta {
+  maxPaginasPorDocumento: number;
+  tamanoMaximoMb: number;
+}
