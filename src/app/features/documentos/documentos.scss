@@ -97,11 +97,19 @@
 }
 
 .detall {
+  &__accions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+  }
+
   &__grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 0.6rem 1.5rem;
     margin-bottom: 1rem;
+    align-items: center;
 
     .lbl {
       display: block;
@@ -109,6 +117,21 @@
       text-transform: uppercase;
       color: var(--p-text-muted-color);
       letter-spacing: 0.02em;
+    }
+
+    input[pInputText],
+    p-inputnumber {
+      width: 100%;
+    }
+  }
+
+  &__checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    label {
+      font-size: 0.9rem;
     }
   }
 
@@ -123,5 +146,29 @@
 
   li {
     margin-bottom: 0.35rem;
+  }
+}
+
+.historial {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+
+  li {
+    margin-bottom: 0.35rem;
+  }
+
+  &__data {
+    color: var(--p-text-muted-color);
+    margin-right: 0.35rem;
+  }
+
+  &__anterior {
+    text-decoration: line-through;
+    color: var(--p-text-muted-color);
+  }
+
+  &__nou {
+    font-weight: 600;
   }
 }

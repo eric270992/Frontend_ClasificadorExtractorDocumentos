@@ -13,6 +13,15 @@ export interface Incidencia {
   severidad?: string;
 }
 
+/** Una edición manual de un campo, registrada en el historial de auditoría. */
+export interface HistorialCambio {
+  campo: string;
+  valorAnterior: string | null;
+  valorNuevo: string | null;
+  fechaCambio: string;
+  usuario: string;
+}
+
 /** Respuesta de POST /documentos cuando el pipeline se ejecuta. */
 export interface ResultadoIngesta {
   documentoId: string;
@@ -65,6 +74,22 @@ export interface FacturaDetalle {
   fechaAprobacionManual: string | null;
   lineas: FacturaLinea[];
   incidencias: (Incidencia & { fechaCreacion: string })[];
+  historial: HistorialCambio[];
+}
+
+/** Cuerpo de PUT /facturas/{id}: los campos editables a mano. No incluye el proveedor. */
+export interface ActualizarFacturaRequest {
+  nifCliente: string | null;
+  nombreCliente: string | null;
+  numeroFactura: string;
+  fechaFactura: string;
+  fechaVencimiento: string | null;
+  moneda: string;
+  baseImponible: number;
+  cuotaIva: number;
+  retencionIrpf: number | null;
+  total: number;
+  reverseCharge: boolean;
 }
 
 /** Respuesta de POST /consultas (éxito). */
@@ -75,4 +100,11 @@ export interface RespuestaConsulta {
   numFilas: number;
   columnas: string[];
   filas: Record<string, unknown>[];
+}
+
+/** Límits de pujada vigents al backend (GET /configuracion). Es demanen en obrir la pantalla de
+ *  documents, de manera que si es canvien al backend, en tornar a entrar ja surt el valor nou. */
+export interface ConfiguracionIngesta {
+  maxPaginasPorDocumento: number;
+  tamanoMaximoMb: number;
 }
