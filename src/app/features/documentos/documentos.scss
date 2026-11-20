@@ -172,3 +172,60 @@
     font-weight: 600;
   }
 }
+
+// Taula de línies en mode edició: taula HTML simple (no p-table) perquè cada cel·la és un camp
+.linies-edicio {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+
+  th {
+    text-align: left;
+    font-weight: 500;
+    padding: 0.35rem 0.25rem;
+    border-bottom: 1px solid var(--p-content-border-color);
+  }
+
+  td {
+    padding: 0.2rem 0.25rem;
+    vertical-align: middle;
+  }
+
+  input[pInputText] {
+    width: 100%;
+  }
+
+  // Columnes numèriques estretes i alineades a la dreta
+  p-inputnumber {
+    width: 6.5rem;
+    display: inline-block;
+  }
+
+  ::ng-deep .num {
+    width: 100%;
+    text-align: right;
+  }
+
+  &__peu {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  &__quadre {
+    font-size: 0.9rem;
+
+    .ok {
+      color: var(--p-green-600);
+      margin-left: 0.5rem;
+    }
+
+    .ko {
+      color: var(--p-red-600);
+      margin-left: 0.5rem;
+    }
+  }
+}

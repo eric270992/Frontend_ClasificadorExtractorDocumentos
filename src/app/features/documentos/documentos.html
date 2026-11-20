@@ -105,6 +105,10 @@
         @if (!editando() && puedeEditar(d.estado)) {
           <p-button label="Editar" icon="pi pi-pencil" size="small" [text]="true" (onClick)="iniciarEdicion()" />
         }
+        @if (!editando() && d.estado === 'RevisionHumana') {
+          <!-- Aprovar sense haver de corregir: demana confirmació i llista les incidències pendents -->
+          <p-button label="Aprovar igualment" icon="pi pi-check" size="small" severity="success" [text]="true" (onClick)="aprobarDetalle(d)" />
+        }
         @if (editando()) {
           <p-button label="Desar" icon="pi pi-check" size="small" [loading]="guardando()" (onClick)="guardarEdicion()" />
           <p-button label="Cancel·lar" icon="pi pi-times" size="small" severity="secondary" [text]="true" [disabled]="guardando()" (onClick)="cancelarEdicion()" />
@@ -148,21 +152,75 @@
       }
 
       <h4>Línies</h4>
-      <p-table [value]="d.lineas" styleClass="p-datatable-sm">
-        <ng-template pTemplate="header">
-          <tr><th>#</th><th>Descripció</th><th class="col-num">Qt.</th><th class="col-num">Preu</th><th class="col-num">%IVA</th><th class="col-num">Import</th></tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-l>
-          <tr>
-            <td>{{ l.numLinea }}</td>
-            <td>{{ l.descripcion }}</td>
-            <td class="col-num">{{ l.cantidad | number: '1.0-4' }}</td>
-            <td class="col-num">{{ l.precioUnitario | number: '1.2-4' }}</td>
-            <td class="col-num">{{ l.porcentajeIva }}%</td>
-            <td class="col-num">{{ l.importeLinea | number: '1.2-2' }}</td>
-          </tr>
-        </ng-template>
-      </p-table>
+      @if (editando() && edicion?.lineas; as lineas) {
+        <!-- Mode edició: cada cel·la és un camp. L'import es proposa (quantitat × preu) però es pot sobreescriure. -->
+        <table class="linies-edicio">
+          <thead>
+            <tr><th>#</th><th>Descripció</th><th class="col-num">Qt.</th><th class="col-num">Preu</th><th class="col-num">%IVA</th><th class="col-num">Import</th><th></th></tr>
+          </thead>
+          <tbody>
+            @for (l of lineas; track $index; let i = $index) {
+              <tr>
+                <td>{{ i + 1 }}</td>
+                <td><input pInputText type="text" [(ngModel)]="l.descripcion" placeholder="Descripció" /></td>
+                <td>
+                  <p-inputNumber [ngModel]="l.cantidad" (ngModelChange)="l.cantidad = $event; recalcularImporte(l)"
+                    mode="decimal" [maxFractionDigits]="4" inputStyleClass="num" />
+                </td>
+                <td>
+                  <p-inputNumber [ngModel]="l.precioUnitario" (ngModelChange)="l.precioUnitario = $event; recalcularImporte(l)"
+                    mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="4" inputStyleClass="num" />
+                </td>
+                <td>
+                  <!-- Buit = el document no indica el %IVA d'aquesta línia (no és el mateix que 0%) -->
+                  <p-inputNumber [(ngModel)]="l.porcentajeIva" mode="decimal" [min]="0" [max]="100" [maxFractionDigits]="2"
+                    placeholder="—" inputStyleClass="num" />
+                </td>
+                <td>
+                  <p-inputNumber [(ngModel)]="l.importeLinea" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2"
+                    inputStyleClass="num" />
+                </td>
+                <td>
+                  <p-button icon="pi pi-trash" [rounded]="true" [text]="true" size="small" severity="danger"
+                    (onClick)="eliminarLinea(i)" />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <div class="linies-edicio__peu">
+          <p-button label="Afegir línia" icon="pi pi-plus" size="small" [text]="true" (onClick)="anadirLinea()" />
+          <span class="linies-edicio__quadre">
+            Suma línies: <strong>{{ sumaLineas() | number: '1.2-2' }}</strong>
+            @switch (cuadreLineas()) {
+              @case ('base') { <span class="ok">✓ quadra amb la base</span> }
+              @case ('baseMasIva') { <span class="ok">✓ quadra amb base + IVA (IVA inclòs)</span> }
+              @default { <span class="ko">✗ no quadra amb la base ({{ edicion?.baseImponible | number: '1.2-2' }})</span> }
+            }
+          </span>
+          <p-button label="Recalcular capçalera" icon="pi pi-calculator" size="small" [text]="true"
+            pTooltip="Base, IVA i total a partir de les línies (suposant imports sense IVA)"
+            (onClick)="recalcularCabeceraDesdeLineas()" />
+        </div>
+      } @else {
+        <p-table [value]="d.lineas" styleClass="p-datatable-sm">
+          <ng-template pTemplate="header">
+            <tr><th>#</th><th>Descripció</th><th class="col-num">Qt.</th><th class="col-num">Preu</th><th class="col-num">%IVA</th><th class="col-num">Import</th></tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-l>
+            <tr>
+              <td>{{ l.numLinea }}</td>
+              <td>{{ l.descripcion }}</td>
+              <td class="col-num">{{ l.cantidad | number: '1.0-4' }}</td>
+              <td class="col-num">{{ l.precioUnitario | number: '1.2-4' }}</td>
+              <!-- null = el document no l'indicava -->
+              <td class="col-num">{{ l.porcentajeIva === null ? '—' : l.porcentajeIva + '%' }}</td>
+              <td class="col-num">{{ l.importeLinea | number: '1.2-2' }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      }
 
       @if (d.incidencias.length) {
         <h4>Incidències</h4>

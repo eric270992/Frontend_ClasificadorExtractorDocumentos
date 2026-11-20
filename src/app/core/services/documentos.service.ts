@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { API_BASE } from './api.config';
 import {
-  ActualizarFacturaRequest, ConfiguracionIngesta, FacturaDetalle, FacturaResumen, ResultadoIngesta,
+  ActualizarFacturaRequest, ConfiguracionIngesta, FacturaDetalle, FacturaResumen, ResultadoEdicion, ResultadoIngesta,
 } from '../models/factura.models';
 
 @Injectable({ providedIn: 'root' })
@@ -44,7 +44,8 @@ export class DocumentosService {
 
   /** Edición manual de los campos extraídos: solo válida si la factura está en Validada o
    * RevisionHumana. Cada campo modificado queda registrado en el historial de auditoría. */
-  actualizarFactura(id: number, request: ActualizarFacturaRequest): Observable<void> {
-    return this.http.put<void>(`${API_BASE}/facturas/${id}`, request);
+  /** Ara retorna l'estat i les incidències després de revalidar (abans no retornava res). */
+  actualizarFactura(id: number, request: ActualizarFacturaRequest): Observable<ResultadoEdicion> {
+    return this.http.put<ResultadoEdicion>(`${API_BASE}/facturas/${id}`, request);
   }
 }

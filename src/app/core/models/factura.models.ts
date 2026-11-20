@@ -45,11 +45,14 @@ export interface FacturaResumen {
 }
 
 export interface FacturaLinea {
+  /** Necessari per dir al backend quina línia es modifica en editar. */
+  id: number;
   numLinea: number;
   descripcion: string;
   cantidad: number;
   precioUnitario: number;
-  porcentajeIva: number;
+  /** null = el document no indicava el %IVA d'aquesta línia (no és el mateix que 0%, exempt). */
+  porcentajeIva: number | null;
   importeLinea: number;
 }
 
@@ -90,6 +93,27 @@ export interface ActualizarFacturaRequest {
   retencionIrpf: number | null;
   total: number;
   reverseCharge: boolean;
+  /** Llista completa de línies tal com queden: id null = nova; les que no hi siguin s'eliminen;
+   *  l'ordre és el nou ordre. Si no s'envia, el backend no toca les línies. */
+  lineas?: LineaEditada[];
+}
+
+/** Una línia dins de PUT /facturas/{id}. */
+export interface LineaEditada {
+  id: number | null;
+  descripcion: string;
+  cantidad: number;
+  precioUnitario: number;
+  porcentajeIva: number | null;
+  importeLinea: number;
+}
+
+/** Resposta de PUT /facturas/{id}: estat i incidències després de tornar a passar les regles. */
+export interface ResultadoEdicion {
+  estado: EstadoFactura;
+  /** false = no hi havia cap canvi: no s'ha revalidat ni desat res. */
+  huboCambios: boolean;
+  incidencias: Incidencia[];
 }
 
 /** Respuesta de POST /consultas (éxito). */
