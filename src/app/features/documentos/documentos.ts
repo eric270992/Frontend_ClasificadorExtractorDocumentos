@@ -19,6 +19,7 @@ import {
   ActualizarFacturaRequest, ConfiguracionIngesta, FacturaDetalle, FacturaResumen, LineaEditada,
 } from '../../core/models/factura.models';
 import { etiquetaEstado, severidadEstado } from '../../core/estado-ui';
+import { VisorDocumento } from './visor-documento/visor-documento';
 
 /** Estados sobre los que tiene sentido editar los campos extraídos a mano. */
 const ESTADOS_EDITABLES = ['Validada', 'RevisionHumana'];
@@ -36,7 +37,7 @@ function redondear2(valor: number): number {
   standalone: true,
   imports: [
     CommonModule, FormsModule, TableModule, TagModule, ButtonModule, DialogModule, ProgressBarModule,
-    MessageModule, InputTextModule, InputNumberModule, CheckboxModule,
+    MessageModule, InputTextModule, InputNumberModule, CheckboxModule, VisorDocumento,
   ],
   templateUrl: './documentos.html',
   styleUrl: './documentos.scss',
@@ -56,6 +57,8 @@ export class Documentos implements OnInit, OnDestroy {
 
   readonly detalle = signal<FacturaDetalle | null>(null);
   readonly detalleVisible = signal(false);
+  /** Diàleg del visor de document amb les zones d'on surt cada dada (prova de grounding). */
+  readonly visorVisible = signal(false);
 
   /** true mientras el diálogo de detalle muestra el formulario editable en lugar de la vista de solo lectura. */
   readonly editando = signal(false);

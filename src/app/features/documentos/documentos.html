@@ -102,6 +102,10 @@
   @if (detalle(); as d) {
     <div class="detall">
       <div class="detall__accions">
+        @if (!editando()) {
+          <!-- Prova de grounding: obre el document amb les zones d'on ha sortit cada dada -->
+          <p-button label="D'on surt cada dada" icon="pi pi-map" size="small" [text]="true" (onClick)="visorVisible.set(true)" />
+        }
         @if (!editando() && puedeEditar(d.estado)) {
           <p-button label="Editar" icon="pi pi-pencil" size="small" [text]="true" (onClick)="iniciarEdicion()" />
         }
@@ -251,5 +255,18 @@
         </ul>
       }
     </div>
+  }
+</p-dialog>
+
+<!-- Diàleg del visor (prova de grounding). Diàleg a part i més ample que el de detall: la pàgina s'ha de veure gran.
+     L'@if fa que el visor es creï de nou cada vegada que s'obre, així sempre carrega la factura actual. -->
+<p-dialog
+  [(visible)]="visorVisible"
+  [modal]="true"
+  [style]="{ width: '80rem', maxWidth: '98vw' }"
+  header="D'on surt cada dada"
+>
+  @if (visorVisible() && detalle(); as d) {
+    <app-visor-documento [facturaId]="d.id" />
   }
 </p-dialog>

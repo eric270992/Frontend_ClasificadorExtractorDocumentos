@@ -135,3 +135,42 @@ export interface ConfiguracionIngesta {
   maxPaginasPorDocumento: number;
   tamanoMaximoMb: number;
 }
+
+// ── Grounding (prova, feature/grounding): d'on ha sortit cada dada dins el document ──
+
+/** Mètode amb què el backend localitza els camps. 'hibrido' = capa de text del PDF (exacte, sense cost de
+ *  model); 'llm' = el model de visió marca les caixes (aproximat, però també funciona amb fotos). */
+export type MetodoGrounding = 'hibrido' | 'llm';
+
+/** Caixa normalitzada 0-1 sobre la pàgina: (0,0) dalt a l'esquerra, (1,1) baix a la dreta. Es pinta en
+ *  percentatges, així no importa la mida a què es mostri la imatge. */
+export interface CajaNormalizada {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+/** Un camp de la factura i on s'ha trobat. pagina/caja null = no localitzat al document. */
+export interface CampoLocalizado {
+  /** Clau estable: 'emisor.nif', 'totales.total', 'lineas[0].importeLinea'... */
+  campo: string;
+  etiqueta: string;
+  valor: string;
+  pagina: number | null;
+  caja: CajaNormalizada | null;
+  /** 1 = coincidència exacta; menys = aproximada. null amb el mètode llm. */
+  puntuacion: number | null;
+  /** Zones del document que coincidien amb el valor (>1 = s'ha hagut de triar). null amb el mètode llm. */
+  numCandidatos: number | null;
+}
+
+/** Resposta de GET /facturas/{id}/grounding. */
+export interface ResultadoGrounding {
+  facturaId: number;
+  metodo: MetodoGrounding;
+  numPaginas: number;
+  campos: CampoLocalizado[];
+  duracionMs: number;
+  avisos: string[];
+}
