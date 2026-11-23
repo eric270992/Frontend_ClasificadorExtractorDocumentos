@@ -71,6 +71,9 @@ export interface FacturaDetalle {
   retencionIrpf: number | null;
   total: number;
   reverseCharge: boolean;
+  /** true = els imports de línia ja porten l'IVA (tiquets): la suma de línies és el total.
+   *  false = no el porten (factures): la suma de línies és la base. Ve del JSON de l'extracció. */
+  lineasIncluyenIva: boolean;
   estado: EstadoFactura;
   nivelExtraccion: number;
   fechaIngesta: string;

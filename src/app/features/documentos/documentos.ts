@@ -309,34 +309,76 @@ export class Documentos implements OnInit, OnDestroy {
   }
 
   /**
-   * Botó "Recalcular capçalera": omple base, quota d'IVA i total a partir de les línies,
-   * suposant que els imports de línia NO porten IVA (el cas habitual).
+   * Botó "Recalcular capçalera": torna a calcular base, IVA i total a partir de les línies.
    * No és automàtic a propòsit: els totals de capçalera són els del document i serveixen per detectar errors.
-   * Si alguna línia no té %IVA, la quota no es pot calcular i no es toca res.
+   *
+   * La suma de línies vol dir una cosa diferent segons el document:
+   *  - Tiquet (les línies ja porten l'IVA):    suma de línies = TOTAL
+   *  - Factura (les línies no porten l'IVA):   suma de línies = BASE
+   * Ho sabem pel camp lineasIncluyenIva, que ve del backend (el va extreure el model en llegir el PDF).
    */
   recalcularCabeceraDesdeLineas(): void {
-    // Cada clic comença net: si ara ja es pot calcular, l'avís anterior desapareix
+    // Cada clic comença net: si ara ja es pot calcular tot, l'avís anterior desapareix
     this.avisoEdicion.set(null);
 
     const facturaEditada = this.edicion;
-    if (!facturaEditada?.lineas || facturaEditada.lineas.length === 0) {
+    const facturaOriginal = this.detalle();
+    if (!facturaEditada?.lineas || facturaEditada.lineas.length === 0 || !facturaOriginal) {
       return;
     }
 
-    // 1. Comprovar que totes les línies tenen %IVA (buit no vol dir 0%)
-    for (const linea of facturaEditada.lineas) {
-      if (linea.porcentajeIva === null) {
-        this.avisoEdicion.set("Hi ha línies sense %IVA: no es pot calcular la quota d'IVA. Omple el %IVA de totes les línies i torna-ho a provar.");
-        return;
-      }
+    if (facturaOriginal.lineasIncluyenIva) {
+      this.recalcularCabeceraConIvaIncluido(facturaEditada);
+    } else {
+      this.recalcularCabeceraSinIvaIncluido(facturaEditada);
+    }
+  }
+
+  /** Tiquet: les línies ja porten l'IVA, per tant la suma de línies és el total. */
+  private recalcularCabeceraConIvaIncluido(facturaEditada: ActualizarFacturaRequest): void {
+    const sumaLineas = this.sumaLineas();
+    const retencionIrpf = facturaEditada.retencionIrpf ?? 0;
+
+    // 1. El total sempre es pot calcular: és la suma de línies (menys IRPF, si n'hi ha)
+    facturaEditada.total = redondear2(sumaLineas - retencionIrpf);
+
+    // 2. Per separar base i IVA cal el %IVA de cada línia. Si en falta algun, no s'inventa: s'avisa.
+    if (!this.todasLasLineasTienenIva()) {
+      this.avisoEdicion.set(
+        "Total recalculat. La base i l'IVA no es poden calcular perquè hi ha línies sense %IVA: revisa-les a mà.");
+      return;
     }
 
-    // 2. Base imposable = suma dels imports de les línies
-    const baseImponible = this.sumaLineas();
+    // 3. Base de cada línia = import / (1 + %IVA / 100). Exemple: 12,10 al 21% → 12,10 / 1,21 = 10,00
+    let baseImponible = 0;
+    for (const linea of facturaEditada.lineas ?? []) {
+      const importeLinea = linea.importeLinea ?? 0;
+      const porcentajeIva = linea.porcentajeIva ?? 0;
+      baseImponible = baseImponible + importeLinea / (1 + porcentajeIva / 100);
+    }
+    baseImponible = redondear2(baseImponible);
 
-    // 3. Quota d'IVA = suma de (import de la línia × %IVA de la línia / 100)
+    // 4. L'IVA és el que queda: suma de línies (amb IVA) menys la base (sense IVA)
+    facturaEditada.baseImponible = baseImponible;
+    facturaEditada.cuotaIva = redondear2(sumaLineas - baseImponible);
+  }
+
+  /** Factura: les línies no porten l'IVA, per tant la suma de línies és la base. */
+  private recalcularCabeceraSinIvaIncluido(facturaEditada: ActualizarFacturaRequest): void {
+    // 1. La base sempre es pot calcular: és la suma de línies
+    const baseImponible = this.sumaLineas();
+    facturaEditada.baseImponible = baseImponible;
+
+    // 2. Per calcular l'IVA cal el %IVA de cada línia. Si en falta algun, no s'inventa: s'avisa.
+    if (!this.todasLasLineasTienenIva()) {
+      this.avisoEdicion.set(
+        "Base recalculada. L'IVA i el total no es poden calcular perquè hi ha línies sense %IVA: revisa'ls a mà.");
+      return;
+    }
+
+    // 3. IVA = suma de (import de la línia × %IVA de la línia / 100)
     let cuotaIva = 0;
-    for (const linea of facturaEditada.lineas) {
+    for (const linea of facturaEditada.lineas ?? []) {
       const importeLinea = linea.importeLinea ?? 0;
       const porcentajeIva = linea.porcentajeIva ?? 0;
       cuotaIva = cuotaIva + (importeLinea * porcentajeIva) / 100;
@@ -345,11 +387,18 @@ export class Documentos implements OnInit, OnDestroy {
 
     // 4. Total = base + IVA − retenció d'IRPF (si n'hi ha)
     const retencionIrpf = facturaEditada.retencionIrpf ?? 0;
-    const total = redondear2(baseImponible + cuotaIva - retencionIrpf);
-
-    facturaEditada.baseImponible = baseImponible;
     facturaEditada.cuotaIva = cuotaIva;
-    facturaEditada.total = total;
+    facturaEditada.total = redondear2(baseImponible + cuotaIva - retencionIrpf);
+  }
+
+  /** true si totes les línies tenen %IVA. Buit (null) vol dir "el document no l'indica", no 0%. */
+  private todasLasLineasTienenIva(): boolean {
+    for (const linea of this.edicion?.lineas ?? []) {
+      if (linea.porcentajeIva === null) {
+        return false;
+      }
+    }
+    return true;
   }
 
   guardarEdicion(): void {
