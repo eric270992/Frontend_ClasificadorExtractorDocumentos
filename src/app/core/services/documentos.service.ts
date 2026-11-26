@@ -3,7 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { API_BASE } from './api.config';
 import {
-  ActualizarFacturaRequest, ConfiguracionIngesta, FacturaDetalle, FacturaResumen, ResultadoEdicion, ResultadoIngesta,
+  ActualizarFacturaRequest, ConfiguracionIngesta, FacturaDetalle, FacturaResumen, MetodoGrounding, ResultadoEdicion,
+  ResultadoGrounding, ResultadoIngesta,
 } from '../models/factura.models';
 
 @Injectable({ providedIn: 'root' })
@@ -47,5 +48,16 @@ export class DocumentosService {
   /** Ara retorna l'estat i les incidències després de revalidar (abans no retornava res). */
   actualizarFactura(id: number, request: ActualizarFacturaRequest): Observable<ResultadoEdicion> {
     return this.http.put<ResultadoEdicion>(`${API_BASE}/facturas/${id}`, request);
+  }
+
+  /** Grounding (prova): on és cada camp dins el document. El mètode 'llm' fa una crida al model i pot trigar. */
+  obtenerGrounding(id: number, metodo: MetodoGrounding): Observable<ResultadoGrounding> {
+    return this.http.get<ResultadoGrounding>(`${API_BASE}/facturas/${id}/grounding`, { params: { metodo } });
+  }
+
+  /** URL de la imatge PNG d'una pàgina (1 = primera). Es retorna la URL i no un Observable perquè la imatge
+   *  la descarrega directament el navegador amb un <img src>: així la memòria cau i la càrrega les gestiona ell. */
+  urlPaginaFactura(id: number, pagina: number): string {
+    return `${API_BASE}/facturas/${id}/paginas/${pagina}`;
   }
 }

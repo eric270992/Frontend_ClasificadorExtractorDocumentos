@@ -1,0 +1,107 @@
+.visor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  &__barra {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  &__paginacio {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  &__resum {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: var(--p-text-muted-color);
+  }
+
+  // Pàgina a l'esquerra (la major part de l'amplada) i llegenda a la dreta amb scroll propi
+  &__cos {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 18rem;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  // position: relative és el que fa que les caixes (absolute) es col·loquin respecte de la imatge
+  &__pagina {
+    position: relative;
+    border: 1px solid var(--p-content-border-color);
+
+    img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+  }
+
+  &__caixa {
+    position: absolute;
+    border: 2px solid;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: opacity 0.15s, box-shadow 0.15s;
+
+    &--seleccionada {
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.35);
+      z-index: 1;
+    }
+
+    // Quan hi ha un camp seleccionat, la resta es difuminen perquè el seleccionat destaqui
+    &--atenuada {
+      opacity: 0.25;
+    }
+  }
+
+  &__llegenda {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 75vh;
+    overflow-y: auto;
+    font-size: 0.85rem;
+
+    li {
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+      padding: 0.35rem 0.4rem;
+      border-radius: 4px;
+      cursor: pointer;
+      word-break: break-word;
+
+      &:hover {
+        background: var(--p-content-hover-background);
+      }
+
+      &.seleccionat {
+        background: var(--p-highlight-background);
+      }
+
+      // Un camp no localitzat es mostra en cursiva i apagat: el valor no s'ha trobat al document
+      &.no-localitzat {
+        color: var(--p-text-muted-color);
+        font-style: italic;
+      }
+
+      small {
+        color: var(--p-text-muted-color);
+      }
+    }
+
+    .punt {
+      flex: 0 0 auto;
+      width: 0.75rem;
+      height: 0.75rem;
+      margin-top: 0.25rem;
+      border-radius: 50%;
+    }
+  }
+}

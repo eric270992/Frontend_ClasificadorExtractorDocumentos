@@ -1,0 +1,57 @@
+<div class="visor">
+  <!-- Barra superior: mètode, paginació i resum -->
+  <div class="visor__barra">
+    <!-- En canviar de mètode es torna a demanar al backend. El mètode LLM pot trigar (crida al model). -->
+    <p-selectbutton [options]="opcionesMetodo" [(ngModel)]="metodo" optionLabel="label" optionValue="value"
+      [allowEmpty]="false" [disabled]="cargando()" (onChange)="cargar()" />
+
+    @if (resultado(); as r) {
+      <div class="visor__paginacio">
+        <p-button icon="pi pi-chevron-left" size="small" [text]="true" [disabled]="paginaActual() <= 1" (onClick)="cambiarPagina(-1)" />
+        <span>Pàgina {{ paginaActual() }} / {{ r.numPaginas }}</span>
+        <p-button icon="pi pi-chevron-right" size="small" [text]="true" [disabled]="paginaActual() >= r.numPaginas" (onClick)="cambiarPagina(1)" />
+      </div>
+      <span class="visor__resum">{{ numLocalizados() }}/{{ numCampos() }} camps localitzats · {{ r.duracionMs }} ms</span>
+    }
+  </div>
+
+  @if (cargando()) {
+    <p-progressbar mode="indeterminate" [style]="{ height: '4px' }" />
+  }
+  @if (error(); as missatge) {
+    <p-message severity="error" [text]="missatge" />
+  }
+  @for (aviso of resultado()?.avisos ?? []; track aviso) {
+    <p-message severity="warn" [text]="aviso" />
+  }
+
+  <div class="visor__cos">
+    <!-- Pàgina amb les caixes a sobre. La imatge marca la mida; les caixes es posen en % damunt seu. -->
+    <div class="visor__pagina">
+      <img [src]="urlPagina()" alt="Pàgina {{ paginaActual() }} del document" />
+      @for (campo of cajasPagina(); track campo.campo) {
+        <div class="visor__caixa"
+          [class.visor__caixa--seleccionada]="campoSeleccionado() === campo.campo"
+          [class.visor__caixa--atenuada]="campoSeleccionado() !== null && campoSeleccionado() !== campo.campo"
+          [style]="estiloCaja(campo)"
+          [title]="campo.etiqueta + ': ' + campo.valor"
+          (click)="seleccionar(campo)"></div>
+      }
+    </div>
+
+    <!-- Llegenda: tots els camps, també els NO localitzats (que és informació: el valor no surt al document) -->
+    <ul class="visor__llegenda">
+      @for (campo of resultado()?.campos ?? []; track campo.campo) {
+        <li [class.seleccionat]="campoSeleccionado() === campo.campo"
+          [class.no-localitzat]="campo.caja === null"
+          (click)="seleccionar(campo)">
+          <span class="punt" [style.background-color]="color(campo)"></span>
+          <div>
+            <div><strong>{{ campo.etiqueta }}</strong>: {{ campo.valor }}</div>
+            <small>{{ detalleCampo(campo) }}</small>
+          </div>
+        </li>
+      }
+    </ul>
+  </div>
+</div>
