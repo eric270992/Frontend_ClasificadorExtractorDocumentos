@@ -102,7 +102,7 @@
   @if (detalle(); as d) {
     <div class="detall">
       <div class="detall__accions">
-        @if (!editando()) {
+        @if (!editando() && configuracion().groundingHabilitado) {
           <!-- Prova de grounding: obre el document amb les zones d'on ha sortit cada dada -->
           <p-button label="D'on surt cada dada" icon="pi pi-map" size="small" [text]="true" (onClick)="visorVisible.set(true)" />
         }

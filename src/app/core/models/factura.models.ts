@@ -134,6 +134,8 @@ export interface RespuestaConsulta {
 export interface ConfiguracionIngesta {
   maxPaginasPorDocumento: number;
   tamanoMaximoMb: number;
+  /** Si el backend té el grounding activat (Grounding:Habilitado); si no, s'amaga el botó del visor. */
+  groundingHabilitado: boolean;
 }
 
 // ── Grounding (prova, feature/grounding): d'on ha sortit cada dada dins el document ──

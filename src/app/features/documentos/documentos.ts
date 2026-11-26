@@ -51,7 +51,7 @@ export class Documentos implements OnInit, OnDestroy {
   readonly arrastrando = signal(false);
   /** Límits de pujada. Valors per defecte mentre no arriba la resposta del backend (o si falla):
    *  no és crític, perquè el backend torna a validar quan es puja el fitxer. */
-  readonly configuracion = signal<ConfiguracionIngesta>({ maxPaginasPorDocumento: 4, tamanoMaximoMb: 10 });
+  readonly configuracion = signal<ConfiguracionIngesta>({ maxPaginasPorDocumento: 4, tamanoMaximoMb: 10, groundingHabilitado: false });
 
   readonly mensajeSubida = signal<{ tipo: 'success' | 'error' | 'warn'; texto: string } | null>(null);
 
